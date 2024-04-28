@@ -41,9 +41,20 @@ export class UserController {
   @SetMetadata('permissions', ['manage_users'])
   async findAll(
     @Query('limit') limit: string,
-    @Query('skip') skip: string
+    @Query('skip') skip: string,
+    @Query('sortBy') sortBy: string,
+    @Query('sortOrder') sortOrder: string,
+    @Query('role') role: string,
+    @Query('search') search: string
   ): Promise<{ limit: number; skip: number; total: number; users: User[] }> {
-    const { users, total } = await this.userService.getAllUsers(parseInt(limit), parseInt(skip));
+    const { users, total } = await this.userService.getAllUsers(
+      parseInt(limit),
+      parseInt(skip),
+      sortBy,
+      sortOrder,
+      role,
+      search
+    );
     return {
       limit: parseInt(limit),
       skip: parseInt(skip),

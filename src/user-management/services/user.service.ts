@@ -16,9 +16,40 @@ export class UserService {
     return Promise.resolve(_id);
   }
 
-  async getAllUsers(limit = 16, skip = 0): Promise<{ users: User[]; total: number }> {
-    const users = await this.userModel.find().limit(limit).skip(skip).exec();
-    const total = await this.userModel.countDocuments();
+  async getAllUsers(
+    limit = 16,
+    skip = 0,
+    sortBy = 'name',
+    sortOrder = 'asc',
+    role?: string,
+    search?: string
+  ): Promise<{ users: User[]; total: number }> {
+    const query = this.userModel.find();
+
+    // Filtering by role
+    if (role) {
+      query.where('role').equals(role);
+    }
+
+    // Search functionality across multiple fields
+    if (search) {
+      query.or([
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
+        { designation: { $regex: search, $options: 'i' } }
+      ]);
+    }
+
+    // Sorting
+    const sortOrderFinal = sortOrder === 'desc' ? '-' : '';
+    query.sort(`${sortOrderFinal}${sortBy}`);
+
+    // Pagination
+    query.limit(limit).skip(skip);
+
+    const users = await query.exec();
+    const total = await this.userModel.countDocuments().exec();
 
     return { users, total };
   }

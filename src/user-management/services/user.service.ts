@@ -3,20 +3,24 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { User, UserDocument } from '../schemas/user.schema';
 import * as bcrypt from 'bcrypt';
+import { CreateUserDto } from '../dto/create-user.dto';
 
 @Injectable()
 export class UserService {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
-  async createUser(user: User): Promise<Types.ObjectId> {
+  async createUser(user: CreateUserDto): Promise<Types.ObjectId> {
     // Create the user using the validated data
     const createdUser = new this.userModel(user);
     const {_id} = await createdUser.save();
     return Promise.resolve(_id);
   }
 
-  async getAllUsers(): Promise<User[]> {
-    return this.userModel.find().exec();
+  async getAllUsers(limit = 16, skip = 0): Promise<{ users: User[]; total: number }> {
+    const users = await this.userModel.find().limit(limit).skip(skip).exec();
+    const total = await this.userModel.countDocuments();
+
+    return { users, total };
   }
 
   async findOne(id: string): Promise<User> {

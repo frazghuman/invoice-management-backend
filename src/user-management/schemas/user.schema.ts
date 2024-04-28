@@ -1,4 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import * as Joi from 'joi';
 import { Document, Types } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -23,6 +24,18 @@ export class User extends Document {
 
   @Prop()
   verificationKey?: string;
+
+  @Prop()
+  designation?: string;
+
+  @Prop()
+  phone?: string;
+
+  @Prop()
+  additionalInformation?: string;
+
+  @Prop({ required: true, type: [Types.ObjectId], ref: 'Company' })
+  companiesAccess: Types.ObjectId[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
@@ -38,3 +51,24 @@ UserSchema.pre<User>('save', function (next) {
 function generateVerificationKey(): string {
     return uuidv4();
   }
+
+// Define a helper function to validate MongoDB ObjectId
+const objectId = Joi.string().custom((value, helpers) => {
+  if (!Types.ObjectId.isValid(value)) {
+    return helpers.error('any.invalid');
+  }
+  return value;  // Return the value if validation passes
+}, 'Object ID Validation');
+
+export const UserValidationSchema = Joi.object({
+  name: Joi.string().required(),
+  email: Joi.string().email().required(),
+  password: Joi.string().optional(),
+  verified: Joi.boolean().default(false),
+  role: objectId.required(),
+  verificationKey: Joi.string().optional(),
+  designation: Joi.string().optional(),
+  phone: Joi.string().optional(),
+  additionalInformation: Joi.string().optional(),
+  companiesAccess: Joi.array().items(objectId).min(1).required()
+});

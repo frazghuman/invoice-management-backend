@@ -11,6 +11,8 @@ import { CorsMiddleware } from './middlewares/cors.middleware';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { SettingsModule } from './settings/settings.module';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 @Module({
   imports: [
@@ -30,7 +32,11 @@ import { SettingsModule } from './settings/settings.module';
     AppController
   ],
   providers: [
-    AppService
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
+    },
   ],
 })
 export class AppModule implements NestModule {

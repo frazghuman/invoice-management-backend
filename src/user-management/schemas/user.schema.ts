@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 export type UserDocument = User & Document;
 
-@Schema()
+@Schema({ timestamps: true })  // Enables automatic handling of createdAt and updatedAt fields
 export class User extends Document {
   @Prop({ required: true })
   name: string;
@@ -36,6 +36,9 @@ export class User extends Document {
 
   @Prop({ required: true, type: [Types.ObjectId], ref: 'Company' })
   companiesAccess: Types.ObjectId[];
+  
+  @Prop({ default: false })
+  deleted: boolean;  // Soft delete flag
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

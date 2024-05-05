@@ -6,7 +6,7 @@ import { diskStorage } from 'multer';
 import { ProjectFile, ProjectFileSchema } from './schemas/project-file.schema';
 import { ProjectFileService } from './services/project-file.service';
 import { ProjectServiceModule } from '../project-management/services/project-service.module';
-import { DocsMiddleware, ExcelMiddleware } from '../middlewares/allowed-file-formats.middleware';
+import { DocsMiddleware, ExcelMiddleware, ImageMiddleware } from '../middlewares/allowed-file-formats.middleware';
 import * as path from 'path';
 import { ExcelServiceModule } from './services/excel.module';
 
@@ -63,6 +63,7 @@ export class FileManagementModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(ExcelMiddleware).forRoutes({ path: 'file/upload/excel', method: RequestMethod.POST });
     consumer.apply(DocsMiddleware).forRoutes({ path: 'file/upload/docs', method: RequestMethod.POST });
+    consumer.apply(ImageMiddleware).forRoutes({ path: 'file/upload/image', method: RequestMethod.POST });
     
   }
 }

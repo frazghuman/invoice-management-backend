@@ -23,3 +23,14 @@ export class DocsMiddleware implements NestMiddleware {
       next();
     };
 }
+
+@Injectable()
+export class ImageMiddleware implements NestMiddleware {
+    use(req: Request, res: Response, next: NextFunction) {
+      // Set allowed Excel formats
+      const allowedFormats = req?.['allowedFormats'] ?? [];
+      req['allowedFormats'] = [...allowedFormats, 'png', 'jpg', 'jpeg', 'gif'];
+      
+      next();
+    };
+}

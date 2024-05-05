@@ -25,6 +25,19 @@ import { ExcelService } from './services/excel.service';
 export class FileUploadController {
   constructor(private projectFileService: ProjectFileService, private excelService: ExcelService) {}
 
+  @Post('upload/image')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadImageFile(@UploadedFile() file, @Req() req: Request, @Res() res: Response) {
+    // Send response back
+    res.status(HttpStatus.OK).json({
+      data: {
+        filename: file.originalname,
+        fileUrl: `/files/${file.filename}`,
+      },
+      message: 'File uploaded successfully'
+    });
+  }
+
   @Post('upload/excel')
   @UseInterceptors(FileInterceptor('file'))
   async uploadExcelFile(@UploadedFile() file, @Req() req: Request, @Res() res: Response) {

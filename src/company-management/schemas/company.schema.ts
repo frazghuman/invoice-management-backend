@@ -10,7 +10,7 @@ export class Company {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ required: true, unique: true })
+  @Prop({ required: true })
   email: string;
 
   @Prop({ required: true })
@@ -34,6 +34,9 @@ export class Company {
 
 export const CompanySchema = SchemaFactory.createForClass(Company);
 
+// Adding a compound index for email and deleted fields
+CompanySchema.index({ email: 1, deleted: 1 }, { unique: true });
+
 export const companyValidationSchema = Joi.object({
   name: Joi.string().required(),
   email: Joi.string().email().required(),
@@ -41,5 +44,5 @@ export const companyValidationSchema = Joi.object({
   businessNo: Joi.string().optional(),
   address: Joi.string().optional(),
   cif: Joi.string().optional(),
-  logo: Joi.string().uri().optional()  // Assuming the logo is a URL and optional
+  logo: Joi.string().allow('').allow(null).optional()  // Assuming the logo is a URL and optional
 });

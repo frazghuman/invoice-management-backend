@@ -11,12 +11,15 @@ export class CompanyService {
 
   async create(createCompanyDto: CreateCompanyDto): Promise<Company> {
     const existingCompany = await this.companyModel.findOne({
-      email: createCompanyDto.email,
+      $or: [
+        { name: createCompanyDto.name },
+        { cif: createCompanyDto.cif }
+      ],
       deleted: false  // Ensure we only consider active records
     });
 
     if (existingCompany) {
-      throw new ConflictException('A company with the given email already exists and is active.');
+      throw new ConflictException('A company with the given name or cif already exists and is active.');
     }
 
     const createdCompany = new this.companyModel(createCompanyDto);
@@ -37,6 +40,7 @@ export class CompanyService {
     // Apply sorting
     const sortOrder = options.sortOrder === 'desc' ? '-' : '';
     query.sort(`${sortOrder}${options.sortBy}`);
+    query.sort(`createdAt`);
 
     // Apply pagination if limit is not null
     if (options.limit !== null) {
@@ -66,12 +70,15 @@ export class CompanyService {
   async update(id: string, updateCompanyDto: CreateCompanyDto): Promise<Company> {
     const existingEmailConstraint = await this.companyModel.findOne({
       _id: { $ne: id },
-      email: updateCompanyDto.email,
+      $or: [
+        { name: updateCompanyDto.name },
+        { cif: updateCompanyDto.cif }
+      ],
       deleted: false,  // Ensure we only consider active records
     });
 
     if (existingEmailConstraint) {
-      throw new ConflictException('A company with the given email already exists and is active.');
+      throw new ConflictException('A company with the given name or cif already exists and is active.');
     }
     // First check if the company exists and is not deleted
     const existingCompany = await this.companyModel.findOne({ _id: id, deleted: false }).exec();

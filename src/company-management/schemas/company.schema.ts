@@ -34,8 +34,11 @@ export class Company {
 
 export const CompanySchema = SchemaFactory.createForClass(Company);
 
-// Adding a compound index for email and deleted fields
-CompanySchema.index({ email: 1, deleted: 1 }, { unique: true });
+// Compound index for name and deleted
+CompanySchema.index({ name: 1, deleted: 1 }, { unique: true });
+
+// Compound index for cif and deleted
+CompanySchema.index({ cif: 1, deleted: 1 }, { unique: true });
 
 export const companyValidationSchema = Joi.object({
   name: Joi.string().required(),

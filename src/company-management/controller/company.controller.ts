@@ -5,7 +5,6 @@ import { CompanyService } from '../services/company.service';
 import { JoiValidationPipe } from '../../common/pipes/joi-validation.pipe';
 import { PermissionAuthGuard } from '../../auth/permission-auth-guard';
 
-
 @Controller('companies')
 export class CompanyController {
   constructor(private readonly companyService: CompanyService) {}

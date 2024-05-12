@@ -50,7 +50,10 @@ export class UserService {
     // Pagination
     query.limit(limit).skip(skip);
 
-    const users = await query.exec();
+    const users = await query
+    .populate('role', 'name')
+    .populate('companiesAccess', 'name')
+    .exec();
     const total = await this.userModel.countDocuments().exec();
 
     return { users, total };

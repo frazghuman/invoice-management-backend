@@ -42,4 +42,4 @@ import { UserServiceModule } from './services/user-service.module';
   ],
   exports: [JwtStrategy, PassportModule],
 })
-export class UserModule {}
+export class UserManagementModule {}

@@ -36,6 +36,9 @@ export class User extends Document {
 
   @Prop({ required: true, type: [Types.ObjectId], ref: 'Company' })
   companiesAccess: Types.ObjectId[];
+
+  @Prop()
+  image?: string; // Assuming the logo is a URL
   
   @Prop({ default: false })
   deleted: boolean;  // Soft delete flag
@@ -67,11 +70,12 @@ export const UserValidationSchema = Joi.object({
   name: Joi.string().required(),
   email: Joi.string().email().required(),
   password: Joi.string().optional(),
-  verified: Joi.boolean().default(false),
+  verified: Joi.boolean().default(false).optional(),
   role: objectId.required(),
   verificationKey: Joi.string().optional(),
   designation: Joi.string().optional(),
   phone: Joi.string().optional(),
   additionalInformation: Joi.string().optional(),
-  companiesAccess: Joi.array().items(objectId).min(1).required()
+  companiesAccess: Joi.array().items(objectId).min(1).required(),
+  image: Joi.string().allow('').allow(null).optional()
 });

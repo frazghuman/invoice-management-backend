@@ -36,4 +36,8 @@ export class CreateUserDto {
   @Type(() => String)
   @IsMongoId({ each: true })
   companiesAccess: string[];
+
+  @IsOptional()
+  @IsString()
+  logo?: string; // Assuming the logo is a URL
 }

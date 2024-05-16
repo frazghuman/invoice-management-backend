@@ -45,8 +45,9 @@ export class CustomerController {
   }
 
   @Get(':id')
+  @UseGuards(PermissionAuthGuard)
   @SetMetadata('permissions', ['customers-management'])
-  @UsePipes(new JoiValidationPipe(customerValidationSchema)) // Uncomment and adjust the schema as necessary
+  // @UsePipes(new JoiValidationPipe(customerValidationSchema)) // Uncomment and adjust the schema as necessary
   async findOne(@Param('id') id: string): Promise<Customer> {
     return this.customerService.findOne(id);
   }
@@ -54,7 +55,7 @@ export class CustomerController {
   @Put(':id')
   @UseGuards(PermissionAuthGuard)
   @SetMetadata('permissions', ['customers-management'])
-  @UsePipes(new JoiValidationPipe(customerValidationSchema)) // Uncomment and adjust the schema as necessary
+  // @UsePipes(new JoiValidationPipe(customerValidationSchema)) // Uncomment and adjust the schema as necessary
   async update(@Param('id') id: string, @Body() updateCustomerDto: CreateCustomerDto): Promise<Customer> {
     return this.customerService.update(id, updateCustomerDto);
   }

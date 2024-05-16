@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as express from 'express';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { Logger } from '@nestjs/common';
 
 const dotenv = require('dotenv');
 
@@ -12,6 +13,7 @@ async function bootstrap() {
     port: process.env.PORT,
   };
   const app = await NestFactory.create(AppModule, { logger: ['error', 'warn', 'log', 'debug', 'verbose'] });
+  app.useLogger(new Logger());
   app.useGlobalFilters(new AllExceptionsFilter());
   app.enableCors({
     origin: true,

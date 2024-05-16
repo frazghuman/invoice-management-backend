@@ -41,10 +41,7 @@ export class Customer {
 export const CustomerSchema = SchemaFactory.createForClass(Customer);
 
 // Compound index for name and deleted
-CustomerSchema.index({ name: 1, deleted: 1 }, { unique: true });
-
-// Compound index for email and deleted, ensuring unique cif per non-deleted entries
-CustomerSchema.index({ cif: 1, deleted: 1 }, { unique: true });
+CustomerSchema.index({ name: 1, cif: 1, deleted: 1 }, { unique: true });
 
 // Optionally add more indexes as required for business logic, such as on cif or phone numbers
 

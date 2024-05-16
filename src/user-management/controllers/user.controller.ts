@@ -1,22 +1,22 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, UsePipes, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, UsePipes, NotFoundException, UseGuards, SetMetadata, Query } from '@nestjs/common';
 import { UserService } from '../services/user.service';
-import { User } from '../schemas/user.schema';
+import { User, UserValidationSchema } from '../schemas/user.schema';
 import { Types } from 'mongoose';
 import { JoiValidationPipe } from '../../common/pipes/joi-validation.pipe';
 import * as Joi from 'joi';
 import { RoleService } from '../services/role.service';
+import { PermissionAuthGuard } from '../../auth/permission-auth-guard';
+import { CreateUserDto } from '../dto/create-user.dto';
 
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService, private readonly roleService: RoleService) {}
-
+// changes in develop
   @Post()
-  @UsePipes(new JoiValidationPipe(Joi.object({
-    name: Joi.string().required(),
-    email: Joi.string().email().required(),
-    role: Joi.string().required(),
-  })))
-  async create(@Body() user: User): Promise<Types.ObjectId> {
+  @UseGuards(PermissionAuthGuard)
+  @SetMetadata('permissions', ['manage_users'])
+  @UsePipes(new JoiValidationPipe(UserValidationSchema))
+  async create(@Body() user: CreateUserDto): Promise<Types.ObjectId> {
     const { role } = user;
     const roleInfo = await this.roleService.findOne(role.toString());
 
@@ -37,8 +37,30 @@ export class UserController {
   }
 
   @Get()
-  async findAll(): Promise<User[]> {
-    return this.userService.getAllUsers();
+  @UseGuards(PermissionAuthGuard)
+  @SetMetadata('permissions', ['manage_users'])
+  async findAll(
+    @Query('limit') limit: string,
+    @Query('skip') skip: string,
+    @Query('sortBy') sortBy: string,
+    @Query('sortOrder') sortOrder: string,
+    @Query('role') role: string,
+    @Query('search') search: string
+  ): Promise<{ limit: number; skip: number; total: number; users: User[] }> {
+    const { users, total } = await this.userService.getAllUsers(
+      parseInt(limit),
+      parseInt(skip),
+      sortBy,
+      sortOrder,
+      role,
+      search
+    );
+    return {
+      limit: parseInt(limit),
+      skip: parseInt(skip),
+      total,
+      users
+    };
   }
 
   @Get(':id')
@@ -47,11 +69,15 @@ export class UserController {
   }
 
   @Put(':id')
+  @UseGuards(PermissionAuthGuard)
+  @SetMetadata('permissions', ['manage_users'])
   async update(@Param('id') id: string, @Body() user: User): Promise<User> {
     return this.userService.update(id, user);
   }
 
   @Delete(':id')
+  @UseGuards(PermissionAuthGuard)
+  @SetMetadata('permissions', ['manage_users'])
   async remove(@Param('id') id: string): Promise<User> {
     return this.userService.remove(id);
   }

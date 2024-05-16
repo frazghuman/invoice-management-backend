@@ -1,5 +1,4 @@
-import { IsNotEmpty, IsString, ValidateNested, IsArray } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsNotEmpty, IsString, IsOptional, IsEmail } from 'class-validator';
 
 export class ContactPersonDto {
   @IsNotEmpty()
@@ -20,16 +19,30 @@ export class ContactPersonDto {
 }
 
 export class CreateCompanyDto {
-  @IsNotEmpty()
   @IsString()
+  @IsOptional() // Make optional if not required for creation
   name: string;
 
-  @IsNotEmpty()
-  @IsString()
-  code: string;
+  @IsEmail()
+  email: string;
 
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ContactPersonDto)
-  contactPersons: ContactPersonDto[];
+  @IsString()
+  phone: string;
+
+  @IsString()
+  @IsOptional()
+  businessNo?: string;
+
+  @IsString()
+  @IsOptional()
+  address?: string;
+
+  @IsString()
+  @IsOptional()
+  cif?: string;
+
+  @IsString()
+  @IsOptional()
+  logo?: string; // Assuming the logo is a URL and optional
 }
+

@@ -18,19 +18,6 @@ export class JoiValidationPipe implements PipeTransform {
   }
 }
 
-// company-validation.schema.js
-export const companyValidationSchema = Joi.object({
-  name: Joi.string().required(),
-  code: Joi.string().required(),
-  contactPersons: Joi.array().items(
-    Joi.object({
-      name: Joi.string().required(),
-      designation: Joi.string().required(),
-      email: Joi.string().email().required(),
-      phoneNo: Joi.string().required(),
-    })
-  ),
-});
 
 export const projectContractValidationSchema = Joi.object({
   refNo: Joi.string().optional(),

@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { ProjectService } from '../../project-management/services/project.service';
 import { CreateProjectFileDto } from '../dto/file-project.dto';
 import { ProjectFile } from '../schemas/project-file.schema';
 import * as crypto from 'crypto';
@@ -10,15 +9,11 @@ import * as crypto from 'crypto';
 export class ProjectFileService {
   constructor(
     @InjectModel(ProjectFile.name)
-    private projectFileModel: Model<ProjectFile>,
-    private projectService: ProjectService
+    private projectFileModel: Model<ProjectFile>
   ) {}
 
   async create(createProjectFileDto: CreateProjectFileDto): Promise<ProjectFile> {
-    const { project } = createProjectFileDto;
-    if(project) {
-      await this.projectService.findOne(project.toString());
-    }
+    
     const createdProjectFile = new this.projectFileModel(createProjectFileDto);
     return createdProjectFile.save();
   }

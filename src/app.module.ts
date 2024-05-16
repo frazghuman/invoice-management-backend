@@ -5,22 +5,24 @@ import { CompanyModule } from './company-management/company.module';
 import { DatabaseModule } from './config/database.module';
 import { FileManagementModule } from './file-management/file-management.module';
 import { TodoModule } from './todo/todo.module';
-import { UserModule } from './user-management/user.module';
-import { ProjectModule } from './project-management/project.module';
+import { UserManagementModule } from './user-management/user-management.module';
 import { CorsMiddleware } from './middlewares/cors.middleware';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
-import { SettingsModule } from './settings/settings.module';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { CustomersModule } from './customer-management/customer.module';
+import { InventoryModule } from './inventory-management/inventory.module';
 
 @Module({
   imports: [
     DatabaseModule.register(),
     TodoModule,
     FileManagementModule,
-    UserModule,
+    UserManagementModule,
     CompanyModule,
-    ProjectModule,
-    SettingsModule,
+    CustomersModule,
+    InventoryModule,
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'uploads'),
       serveRoot: '/files/',
@@ -30,7 +32,11 @@ import { SettingsModule } from './settings/settings.module';
     AppController
   ],
   providers: [
-    AppService
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
+    },
   ],
 })
 export class AppModule implements NestModule {

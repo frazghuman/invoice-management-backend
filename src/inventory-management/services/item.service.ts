@@ -3,12 +3,16 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Item, ItemDocument } from '../schemas/item.schema';
 import { CreateItemDto, UpdateItemDto } from '../dto/item.dto';
+import { InventoryService } from './inventory.service';
 
 @Injectable()
 export class ItemService {
   existsQuery: any = { deleted: false };
 
-  constructor(@InjectModel(Item.name) private itemModel: Model<ItemDocument>) {}
+  constructor(
+    @InjectModel(Item.name) private itemModel: Model<ItemDocument>,
+    private inventoryService: InventoryService // Inject InventoryService
+  ) {}
 
   async create(createItemDto: CreateItemDto): Promise<Item> {
     const existingItem = await this.itemModel.findOne({
@@ -52,7 +56,9 @@ export class ItemService {
     // Fetch latest price for each item
     const itemsWithLatestPrice = await Promise.all(data.map(async item => {
       const latestPrice = await this.getLatestPrice(item._id);
-      return { ...item.toObject(), latestPrice };
+      const inventoryCount = await this.inventoryService.countInventoryByItem(item._id.toString());
+      const totalAvailableStock = await this.inventoryService.getTotalAvailableStockByItemId(item._id.toString());
+      return { ...item.toObject(), latestPrice, inventoryCount, totalAvailableStock };
     }));
 
     return {
@@ -103,7 +109,10 @@ export class ItemService {
     }
 
     const latestPrice = await this.getLatestPrice(existingItem._id);
-    return { ...existingItem.toObject(), latestPrice };
+    const inventoryCount = await this.inventoryService.countInventoryByItem(existingItem._id.toString());
+    const totalAvailableStock = await this.inventoryService.getTotalAvailableStockByItemId(existingItem._id.toString());
+    
+    return { ...existingItem.toObject(), latestPrice, inventoryCount, totalAvailableStock };
   }
 
   async update(id: string, updateItemDto: UpdateItemDto): Promise<Item> {

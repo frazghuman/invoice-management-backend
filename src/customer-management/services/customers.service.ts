@@ -108,4 +108,8 @@ export class CustomerService {
 
     return this.customerModel.findByIdAndUpdate(customerId, { deleted: true }).exec();
   }
+
+  async findAllCustomers(): Promise<{ _id: string, name: string }[]> {
+    return this.customerModel.find({ ...this.existsQuery }).select('_id name image businessName cif nif').exec();
+  }
 }

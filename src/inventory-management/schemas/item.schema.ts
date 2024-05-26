@@ -33,6 +33,12 @@ export class Item {
   latestPrice?: Price[];
 
   @Prop()
+  inventoryCount?: number;
+
+  @Prop()
+  totalAvailableStock?: number;
+
+  @Prop()
   image?: string; // Assuming this is a URL to an image
 
   @Prop({ default: false })

@@ -44,6 +44,14 @@ export class CustomerController {
     };
   }
 
+  @Get('list')
+  @UseGuards(PermissionAuthGuard)
+  @SetMetadata('permissions', ['customers-management'])
+  async findAllCustomers() {
+    const customers = await this.customerService.findAllCustomers();
+    return customers;
+  }
+
   @Get(':id')
   @UseGuards(PermissionAuthGuard)
   @SetMetadata('permissions', ['customers-management'])
@@ -61,6 +69,7 @@ export class CustomerController {
   }
 
   @Delete(':id')
+  @UseGuards(PermissionAuthGuard)
   @SetMetadata('permissions', ['customers-management'])
   @UsePipes(new JoiValidationPipe(customerValidationSchema)) // Uncomment and adjust the schema as necessary
   async remove(@Param('id') id: string): Promise<Customer> {

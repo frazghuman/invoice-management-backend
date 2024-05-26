@@ -45,6 +45,13 @@ export class ItemController {
     };
   }
 
+  @Get('list')
+  @UseGuards(PermissionAuthGuard)
+  @SetMetadata('permissions', ['items-management'])
+  async findAllItems(): Promise<Item> {
+    return this.itemService.findAllItems();
+  }
+
   @Get(':id')
   @UseGuards(PermissionAuthGuard)
   @SetMetadata('permissions', ['items-management'])

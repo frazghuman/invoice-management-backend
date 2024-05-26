@@ -54,6 +54,6 @@ export const customerValidationSchema = Joi.object({
     cif: Joi.string().optional(),
     nif: Joi.string().optional(),
     address: Joi.string().allow('').optional(),
-    additionalInformation: Joi.string().allow('').optional(),
+    additionalInformation: Joi.string().allow('').allow(null).optional(),
     image: Joi.string().allow('').allow(null).optional(),
   });

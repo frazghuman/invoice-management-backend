@@ -1,10 +1,19 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Request, Response, NextFunction } from 'express';
 
 @Injectable()
 export class CorsMiddleware implements NestMiddleware {
+  constructor(private readonly configService: ConfigService) {
+
+  }
   use(req: Request, res: Response, next: NextFunction) {
-    const allowedOrigins = ['http://localhost:4200','http://ec2-13-38-109-60.eu-west-3.compute.amazonaws.com:4000']; // Replace with your Angular app's domain and port
+    const ALLOW_ORIGINS = this.configService.get<string>('ALLOW_ORIGINS');
+    const allowedOrigins = [
+      // 'http://localhost:4200',
+      // 'http://ec2-13-38-109-60.eu-west-3.compute.amazonaws.com:4000',
+      ...ALLOW_ORIGINS.split(',')
+    ]; // Replace with your Angular app's domain and port
 
     const origin = req.headers.origin;
 

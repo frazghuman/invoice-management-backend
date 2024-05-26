@@ -59,14 +59,14 @@ export const itemPriceValidationSchema = Joi.object({
 export const ItemValidationSchema = {
   create: Joi.object({
       name: Joi.string().min(1).required(),
-      description: Joi.string().optional(),
+      description: Joi.string().allow('').allow(null).optional(),
       baseUnitOfMeasure: Joi.string().required(),
       prices: Joi.array().items(itemPriceValidationSchema).optional(),
       image: Joi.string().allow('').allow(null).optional(),
   }),
   update: Joi.object({
       name: Joi.string().min(1).optional(),
-      description: Joi.string().allow(''), // Correct usage of allow for an empty string
+      description: Joi.string().allow('').allow(null).optional(), // Correct usage of allow for an empty string
       baseUnitOfMeasure: Joi.string().optional(),
       prices: Joi.array().items(itemPriceValidationSchema).optional(), // Ensure optional for the whole array
       image: Joi.string().allow('').allow(null).optional(),

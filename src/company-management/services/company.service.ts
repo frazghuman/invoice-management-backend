@@ -10,13 +10,19 @@ export class CompanyService {
   constructor(@InjectModel(Company.name) private companyModel: Model<CompanyDocument>) {}
 
   async create(createCompanyDto: CreateCompanyDto): Promise<Company> {
-    const existingCompany = await this.companyModel.findOne({
-      $or: [
-        { name: createCompanyDto.name },
-        { cif: createCompanyDto.cif }
-      ],
+    const { name, cif } = createCompanyDto;
+
+    const query: any = {
+      $or: [{ name }],
       deleted: false  // Ensure we only consider active records
-    });
+    };
+
+    // Add the cif check only if cif is provided
+    if (cif) {
+      query.$or.push({ cif });
+    }
+
+    const existingCompany = await this.companyModel.findOne(query);
 
     if (existingCompany) {
       throw new ConflictException('A company with the given name or cif already exists and is active.');
@@ -68,14 +74,20 @@ export class CompanyService {
   }
 
   async update(id: string, updateCompanyDto: CreateCompanyDto): Promise<Company> {
-    const existingEmailConstraint = await this.companyModel.findOne({
+    const { name, cif } = updateCompanyDto;
+
+    const query: any = {
       _id: { $ne: id },
-      $or: [
-        { name: updateCompanyDto.name },
-        { cif: updateCompanyDto.cif }
-      ],
-      deleted: false,  // Ensure we only consider active records
-    });
+      $or: [{ name }],
+      deleted: false  // Ensure we only consider active records
+    };
+
+    // Add the cif check only if cif is provided
+    if (cif) {
+      query.$or.push({ cif });
+    }
+
+    const existingEmailConstraint = await this.companyModel.findOne(query);
 
     if (existingEmailConstraint) {
       throw new ConflictException('A company with the given name or cif already exists and is active.');

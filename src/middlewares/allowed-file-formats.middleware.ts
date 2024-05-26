@@ -31,7 +31,7 @@ export class ImageMiddleware implements NestMiddleware {
       req['allowAllImageFormats'] = true;
       // Set allowed Excel formats
       const allowedFormats = req?.['allowedFormats'] ?? [];
-      req['allowedFormats'] = [...allowedFormats, 'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'ico', 'svg', 'webp', 'jfif'];
+      req['allowedFormats'] = [...allowedFormats, 'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'ico', 'svg', 'webp', 'jfif', 'avif'];
       
       next();
     };

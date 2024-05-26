@@ -90,6 +90,17 @@ export class CompanyService {
     return this.companyModel.findByIdAndUpdate(id, updateCompanyDto, { new: true }).exec();
   }
 
+  async updateLogo(id: string, updateCompanyDto: CreateCompanyDto): Promise<Company> {
+    // First check if the company exists and is not deleted
+    const existingCompany = await this.companyModel.findOne({ _id: id, deleted: false }).exec();
+    if (!existingCompany) {
+      throw new NotFoundException('Company not found or has been deleted.');
+    }
+
+    // Perform the update if the company is not marked as deleted
+    return this.companyModel.findByIdAndUpdate(id, updateCompanyDto, { new: true }).exec();
+  }
+
   async remove(id: string): Promise<Company> {
     // First check if the company exists and is not deleted
     const existingCompany = await this.companyModel.findOne({ _id: id, deleted: false }).exec();

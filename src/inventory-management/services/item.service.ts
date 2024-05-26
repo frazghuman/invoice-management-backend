@@ -36,7 +36,8 @@ export class ItemService {
     if (options.search) {
       query.or([
         { name: { $regex: options.search, $options: 'i' } },
-        { description: { $regex: options.search, $options: 'i' } }
+        { description: { $regex: options.search, $options: 'i' } },
+        { baseUnitOfMeasure: { $regex: options.search, $options: 'i' } }
       ]);
     }
 
@@ -165,5 +166,25 @@ export class ItemService {
 
     // Save the updated item back to the database
     return item.save();
+  }
+
+  async findAllItems(): Promise<any> {
+    const query = this.itemModel.find({ ...this.existsQuery }).select('_id name baseUnitOfMeasure image');
+
+    const data = await query.exec();
+    const total = await this.itemModel.countDocuments(query.getFilter()).exec();
+
+    // Fetch latest price for each item
+    const itemsWithLatestPrice = await Promise.all(data.map(async item => {
+      const latestPrice = await this.getLatestPrice(item._id);
+      const inventoryCount = await this.inventoryService.countInventoryByItem(item._id.toString());
+      const totalAvailableStock = await this.inventoryService.getTotalAvailableStockByItemId(item._id.toString());
+      return { ...item.toObject(), latestPrice, inventoryCount, totalAvailableStock };
+    }));
+
+    return {
+      total,
+      data: itemsWithLatestPrice
+    };
   }
 }

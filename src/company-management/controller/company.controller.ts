@@ -57,6 +57,14 @@ export class CompanyController {
     return this.companyService.update(id, updateCompanyDto);
   }
 
+  @Put(':id/logo')
+  @UseGuards(PermissionAuthGuard)
+  @SetMetadata('permissions', ['manage-companies'])
+  // @UsePipes(new JoiValidationPipe(companyValidationSchema))
+  async updateLogo(@Param('id') id: string, @Body() updateCompanyDto: CreateCompanyDto): Promise<Company> {
+    return this.companyService.updateLogo(id, updateCompanyDto);
+  }
+
   @Delete(':id')
   async remove(@Param('id') id: string): Promise<Company> {
     return this.companyService.delete(id);

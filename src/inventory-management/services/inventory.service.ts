@@ -115,7 +115,7 @@ export class InventoryService {
 
       // Query to count the number of inventory records for the given item
       const count = await this.inventoryModel
-        .countDocuments({ item: itemId })
+        .countDocuments({ item: itemId, ...this.existsQuery })
         .exec();
 
       // Log the count result
@@ -136,7 +136,7 @@ export class InventoryService {
       // Query to find inventories by itemId where deleted is false
       const inventories = await this.inventoryModel.find({
         item: objectId,
-        deleted: false,
+        ...this.existsQuery
       }).exec();
 
       // Calculate the total available stock

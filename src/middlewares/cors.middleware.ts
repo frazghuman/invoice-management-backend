@@ -4,7 +4,7 @@ import { Request, Response, NextFunction } from 'express';
 @Injectable()
 export class CorsMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
-    const allowedOrigins = ['http://localhost:4200']; // Replace with your Angular app's domain and port
+    const allowedOrigins = ['http://localhost:4200','http://ec2-13-38-109-60.eu-west-3.compute.amazonaws.com:4000']; // Replace with your Angular app's domain and port
 
     const origin = req.headers.origin;
 

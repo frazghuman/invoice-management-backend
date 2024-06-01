@@ -97,7 +97,7 @@ export class UserController {
   @UseGuards(PermissionAuthGuard)
   @SetMetadata('permissions', ['manage_users'])
   async remove(@Param('id') id: string): Promise<User> {
-    return this.userService.remove(id);
+    return this.userService.delete(id);
   }
 
   @Get('current/settings')

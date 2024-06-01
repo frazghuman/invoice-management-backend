@@ -4,13 +4,17 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Inventory, InventoryDocument } from '../schemas/inventory.schema';
 import { ReceiveStockInventoryDto } from '../dto/inventory.dto';
+import { UserSettingsService } from '../../user-management/services/user-settings.service';
 
 @Injectable()
 export class InventoryService {
   existsQuery: any = { deleted: false };
 
   private readonly logger = new Logger(InventoryService.name);
-  constructor(@InjectModel(Inventory.name) private inventoryModel: Model<InventoryDocument>) {}
+  constructor(
+    @InjectModel(Inventory.name) private inventoryModel: Model<InventoryDocument>,
+    private userSettingsService: UserSettingsService
+  ) {}
 
   async getInventoriesByItem(itemId: string): Promise<Inventory[]> {
     try {

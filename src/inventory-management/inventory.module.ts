@@ -7,6 +7,7 @@ import { ItemService } from './services/item.service';
 import { ConfigService } from '@nestjs/config';
 import { InventoryController } from './controllers/inventory.controller';
 import { InventoryService } from './services/inventory.service';
+import { UserServiceModule } from '../user-management/services/user-service.module';
 // import { InventoryService } from './inventory.service';
 // import { InventoryController } from './inventory.controller';
 
@@ -15,7 +16,8 @@ import { InventoryService } from './services/inventory.service';
     MongooseModule.forFeature([
       { name: Inventory.name, schema: InventorySchema },
       { name: Item.name, schema: ItemSchema }
-    ])
+    ]),
+    UserServiceModule
   ],
   controllers: [
     ItemController,

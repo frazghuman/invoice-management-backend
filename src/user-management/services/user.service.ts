@@ -124,6 +124,15 @@ export class UserService {
     return this.userModel.findByIdAndRemove(id).exec();
   }
 
+  async delete(id: string): Promise<any> {
+    const existingRecord = await this.userModel.findOne({ _id: id, ...this.existsQuery }).exec();
+    if (!existingRecord) {
+      throw new NotFoundException('Item not found or has been deleted.');
+    }
+
+    return this.userModel.findByIdAndUpdate(id, this.existsQuery).exec();
+  }
+
   async updatePasswordByVerificationKey(
     verificationKey: string,
     newPassword: string,

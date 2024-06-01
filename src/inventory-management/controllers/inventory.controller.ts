@@ -4,8 +4,6 @@ import { Inventory, InventoryValidationSchema } from '../schemas/inventory.schem
 import { InventoryService } from '../services/inventory.service';
 import { PermissionAuthGuard } from '../../auth/permission-auth-guard';
 import { JoiValidationPipe } from '@common/pipes/joi-validation.pipe';
-import { Types } from 'mongoose';
-import { ParseObjectIdPipe } from '@common/pipes/parse-object-id.pipe';
 
 @Controller('inventory')
 export class InventoryController {
@@ -13,7 +11,7 @@ export class InventoryController {
 
   @Post('receive')
   @UseGuards(PermissionAuthGuard)
-  @SetMetadata('permissions', ['invoices-management'])
+  @SetMetadata('permissions', ['manage-stock'])
   @UsePipes(new JoiValidationPipe(InventoryValidationSchema.create))
   async receiveStock(@Body() data: any): Promise<Inventory> {
     return this.inventoryService.receiveStock(data);
@@ -21,7 +19,7 @@ export class InventoryController {
   
   @Put(':id')
   @UseGuards(PermissionAuthGuard)
-  @SetMetadata('permissions', ['invoices-management'])
+  @SetMetadata('permissions', ['manage-stock'])
   @UsePipes(new JoiValidationPipe(InventoryValidationSchema.update))
   async updateStock(@Param('id') id: string, @Body() data: any): Promise<Inventory> {
     const inventory = await this.inventoryService.updateStock(id, data);
@@ -33,21 +31,21 @@ export class InventoryController {
 
   @Delete(':id')
   @UseGuards(PermissionAuthGuard)
-  @SetMetadata('permissions', ['invoices-management'])
+  @SetMetadata('permissions', ['manage-stock'])
   async softDelete(@Param('id') id: string): Promise<Inventory> {
     return this.inventoryService.softDelete(id);
   }
 
   @Get(':itemId/largest-lot-no')
   @UseGuards(PermissionAuthGuard)
-  @SetMetadata('permissions', ['invoices-management'])
+  @SetMetadata('permissions', ['manage-stock'])
   async getLargestLotNoByItem(@Param('itemId') itemId: string): Promise<number> {
     return this.inventoryService.getLargestLotNoByItem(itemId);
   }
 
   @Get(':itemId/inventories')
   @UseGuards(PermissionAuthGuard)
-  @SetMetadata('permissions', ['invoices-management'])
+  @SetMetadata('permissions', ['items-management'])
   async getInventoriesByItem(@Param('itemId') itemId: string): Promise<Inventory[]> {
     return this.inventoryService.getInventoriesByItem(itemId);
   }

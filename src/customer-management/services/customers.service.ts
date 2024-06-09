@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Customer, CustomerDocument } from '../schemas/customers.schema';
 import { CreateCustomerDto } from '../dto/create-customer.dto';
 import { UserSettingsService } from '../../user-management/services/user-settings.service';
@@ -159,11 +159,16 @@ export class CustomerService {
       const userId = decoded.sub.toString();
       const { company } = await this.userSettingsService.getByUserId(userId);
       if (!company) {
-        throw new NotFoundException(`Current User have no company.`);
+        throw new NotFoundException(`Select a company from settings.`);
       }
       return company;
     } catch (error) {
-      throw new NotFoundException(`Current User have no company.`);
+      throw new NotFoundException(`Select a company from settings.`);
     }
+  }
+  // Helper method to find customer IDs by name
+  async findCustomerIdsByName(name: string): Promise<Types.ObjectId[]> {
+    const customers = await this.customerModel.find({ name: { $regex: name, $options: 'i' } }).select('_id').exec();
+    return customers.map(customer => customer._id.toString());
   }
 }

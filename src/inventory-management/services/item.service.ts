@@ -226,11 +226,11 @@ export class ItemService {
       const userId = decoded.sub.toString();
       const { company } = await this.userSettingsService.getByUserId(userId);
       if (!company) {
-        throw new NotFoundException(`Current User have no company.`);
+        throw new NotFoundException(`Select a company from settings.`);
       }
       return company;
     } catch (error) {
-      throw new NotFoundException(`Current User have no company.`);
+      throw new NotFoundException(`Select a company from settings.`);
     }
   }
 }

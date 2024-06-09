@@ -8,6 +8,7 @@ import { UserSettingsService } from './user-settings.service';
 import * as jwt from 'jsonwebtoken';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
+import { MailService } from '../../mail/mail.service';
 
 @Injectable()
 export class UserService {
@@ -16,20 +17,23 @@ export class UserService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private userSettingsService: UserSettingsService,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
+    private readonly mailService: MailService
   ) {}
 
   async createUser(user: CreateUserDto): Promise<Types.ObjectId> {
     // Create the user using the validated data
     const createdUser = new this.userModel(user);
-    const {_id} = await createdUser.save();
+    const {_id, verificationKey} = await createdUser.save();
 
     try {
       await this.userSettingsService.create(_id, {});
+      // Send activation email
+      // await this.mailService.sendActivationEmail(user.email, verificationKey);
     } catch (error) {
       // If creating user settings fails, delete the created user
       await this.userModel.findByIdAndDelete(_id);
-      throw new Error('Failed to create user settings. User creation rolled back.');
+      throw new Error(error);
     }
 
     return Promise.resolve(_id);
@@ -74,6 +78,30 @@ export class UserService {
     const total = await this.userModel.countDocuments().exec();
 
     return { users, total };
+  }
+
+  async getActivationLink(id: string): Promise<any> {
+    // First check if the record exists and is not deleted
+    const existingRecord = await this.userModel.findOne({ _id: id, ...this.existsQuery }).exec();
+    if (!existingRecord) {
+      throw new NotFoundException('User not found or has been deleted.');
+    }
+
+    // Perform the update if the record is not marked as deleted
+    // Return the verification key if the record is not marked as deleted
+    return { activationKey: existingRecord.verificationKey};
+  }
+
+  async getUserByVerificationKey(key: string): Promise<any> {
+    // First check if the record exists and is not deleted
+    const existingRecord = await this.userModel.findOne({ verificationKey: key, ...this.existsQuery }).exec();
+    if (!existingRecord || existingRecord.verified) {
+      throw new NotFoundException('User not found or has been deleted.');
+    }
+
+    // Perform the update if the record is not marked as deleted
+    // Return the verification key if the record is not marked as deleted
+    return existingRecord;
   }
 
   async findOne(id: string): Promise<User> {
@@ -143,11 +171,11 @@ export class UserService {
       throw new Error('User not found');
     }
 
-    const salt = await bcrypt.genSalt();
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    const hashedPassword = await this.hashPassword(newPassword);
 
     user.password = hashedPassword;
-    user.verificationKey = null;
+    user.verificationKey = '';
+    user.verified = true;
 
     const {_id} = await user.save();
     return Promise.resolve(_id);
@@ -169,8 +197,8 @@ export class UserService {
     const {password, newPassword} = resetPasswordDto;
 
     if (this.validateUser(user, password)) {
-      const salt = await bcrypt.genSalt();
-      const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+      const hashedPassword = await this.hashPassword(newPassword);
   
       user.password = hashedPassword;
       user.verificationKey = null;
@@ -180,8 +208,24 @@ export class UserService {
     } else {
       throw new UnauthorizedException('Invalid old password!');
     }
-    
+  }
 
+  async verifyUser(verificationKey, verifyUserDto): Promise<Types.ObjectId> {
+    const user = await this.userModel.findOne({ verificationKey: verificationKey, ...this.existsQuery });
+
+    if (!user || user.verified) {
+      throw new NotFoundException(`User not found.`);
+    }
+
+    const {newPassword} = verifyUserDto;
+
+    const hashedPassword = await this.hashPassword(newPassword);
+
+    user.password = hashedPassword;
+    user.verified = true;
+
+    const {_id} = await user.save();
+    return Promise.resolve(_id);
   }
 
   async validateUser(user: User, password: string): Promise<any> {
@@ -234,5 +278,11 @@ export class UserService {
     } catch (error) {
       throw new NotFoundException(`User settings not found`);
     }
+  }
+
+  async hashPassword(password) {
+    const salt = await bcrypt.genSalt();
+    const hashedPassword = await bcrypt.hash(password, salt);
+    return hashedPassword;
   }
 }

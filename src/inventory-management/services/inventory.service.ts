@@ -155,4 +155,33 @@ export class InventoryService {
       throw new NotFoundException('Error retrieving total available stock');
     }
   }
+
+  async updateSoldOutStock(itemId: Types.ObjectId, quantity: number): Promise<void> {
+    // Fetch the inventory items for the given item ordered by stockReceivedDate (FIFO)
+    const inventoryItems = await this.inventoryModel.find({ item: itemId, deleted: false }).sort({ stockReceivedDate: 1 }).exec();
+
+    let remainingQuantity = quantity;
+
+    for (const inventoryItem of inventoryItems) {
+      if (remainingQuantity <= 0) break;
+
+      const availableStock = inventoryItem.totalStock - inventoryItem.soldOutStock;
+
+      if (availableStock >= remainingQuantity) {
+        // If current inventory item can fulfill the remaining quantity
+        inventoryItem.soldOutStock += remainingQuantity;
+        remainingQuantity = 0;
+      } else {
+        // If current inventory item cannot fulfill the remaining quantity
+        inventoryItem.soldOutStock += availableStock;
+        remainingQuantity -= availableStock;
+      }
+
+      await inventoryItem.save();
+    }
+
+    if (remainingQuantity > 0) {
+      throw new NotFoundException('Not enough stock available to fulfill the order.');
+    }
+  }
 }

@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
 import { Request } from 'express';
 import { CustomerService } from '../../customer-management/services/customers.service';
+import { InventoryService } from './inventory.service';
 
 @Injectable()
 export class InvoiceService {
@@ -16,12 +17,25 @@ export class InvoiceService {
     @InjectModel(Invoice.name) private invoiceModel: Model<InvoiceDocument>,
     private userSettingsService: UserSettingsService,
     private customerService: CustomerService,
+    private inventoryService: InventoryService,
     private readonly configService: ConfigService
   ) {}
 
-  async create(req: Request, createInvoiceDto: CreateInvoiceDto): Promise<Invoice> {
+  /*async create(req: Request, createInvoiceDto: CreateInvoiceDto): Promise<Invoice> {
     const company = await this.getActiveCompanyOfCurrentUser(req);
     const createdInvoice = new this.invoiceModel({...createInvoiceDto, company});
+    return createdInvoice.save();
+  }*/
+
+  async create(req: Request, createInvoiceDto: CreateInvoiceDto): Promise<Invoice> {
+    const company = await this.getActiveCompanyOfCurrentUser(req);
+    const createdInvoice = new this.invoiceModel({ ...createInvoiceDto, company });
+
+    // Update sold out stock for each item in the invoice
+    for (const invoiceItem of createInvoiceDto.items) {
+      await this.inventoryService.updateSoldOutStock(invoiceItem.item, invoiceItem.quantity);
+    }
+
     return createdInvoice.save();
   }
 
@@ -61,18 +75,23 @@ export class InvoiceService {
             await this.customerService.findCustomerIdsByName(options.search)
           );
           break;
-          case 'date':
-            const searchDate = new Date(options.search);
-            const startOfDay = new Date(searchDate).setUTCHours(0, 0, 0, 0);
-            const endOfDay = new Date(searchDate).setUTCHours(23, 59, 59, 999);
-            query.where('date').gte(startOfDay).lt(endOfDay);
-            break;
-          case 'dueDate':
-            const searchDueDate = new Date(options.search);
-            const startOfDueDay = new Date(searchDueDate).setUTCHours(0, 0, 0, 0);
-            const endOfDueDay = new Date(searchDueDate).setUTCHours(23, 59, 59, 999);
-            query.where('dueDate').gte(startOfDueDay).lt(endOfDueDay);
-            break;
+        case 'customer':
+          query.where('customer').in(
+            await this.customerService.findCustomerIdsByName(options.search)
+          );
+          break;
+        case 'date':
+          const searchDate = new Date(options.search);
+          const startOfDay = new Date(searchDate).setUTCHours(0, 0, 0, 0);
+          const endOfDay = new Date(searchDate).setUTCHours(23, 59, 59, 999);
+          query.where('date').gte(startOfDay).lt(endOfDay);
+          break;
+        case 'dueDate':
+          const searchDueDate = new Date(options.search);
+          const startOfDueDay = new Date(searchDueDate).setUTCHours(0, 0, 0, 0);
+          const endOfDueDay = new Date(searchDueDate).setUTCHours(23, 59, 59, 999);
+          query.where('dueDate').gte(startOfDueDay).lt(endOfDueDay);
+          break;
         default:
           break;
       }

@@ -81,6 +81,27 @@ export class UserController {
     };
   }
 
+  @Get('verify/:verificationKey')
+  async getUserByVerificationKey(@Param('verificationKey') verificationKey: string): Promise<any> {
+    return this.userService.getUserByVerificationKey(verificationKey);
+  }
+
+  @Put('verify/:verificationKey')
+  @UsePipes(new JoiValidationPipe(Joi.object({
+    newPassword: Joi.string().required(),
+    retypeNewPassword: Joi.string().required(),
+  })))
+  async verifyUser(@Param('verificationKey') verificationKey: string, @Body() verifyUserDto: any): Promise<Types.ObjectId> {
+    return this.userService.verifyUser(verificationKey, verifyUserDto);
+  }
+
+  @Get(':id/activation/link')
+  @UseGuards(PermissionAuthGuard)
+  @SetMetadata('permissions', ['manage_users'])
+  async getActivationLink(@Param('id') id: string): Promise<any> {
+    return this.userService.getActivationLink(id);
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<User> {
     return this.userService.findOne(id);
@@ -97,7 +118,7 @@ export class UserController {
   @UseGuards(PermissionAuthGuard)
   @SetMetadata('permissions', ['manage_users'])
   async remove(@Param('id') id: string): Promise<User> {
-    return this.userService.remove(id);
+    return this.userService.delete(id);
   }
 
   @Get('current/settings')

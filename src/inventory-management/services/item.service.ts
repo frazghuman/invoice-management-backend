@@ -1,9 +1,13 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Item, ItemDocument } from '../schemas/item.schema';
 import { CreateItemDto, UpdateItemDto } from '../dto/item.dto';
 import { InventoryService } from './inventory.service';
+import * as jwt from 'jsonwebtoken';
+import { ConfigService } from '@nestjs/config';
+import { Request } from 'express';
+import { UserSettingsService } from '../../user-management/services/user-settings.service';
 
 @Injectable()
 export class ItemService {
@@ -11,26 +15,31 @@ export class ItemService {
 
   constructor(
     @InjectModel(Item.name) private itemModel: Model<ItemDocument>,
-    private inventoryService: InventoryService // Inject InventoryService
+    private inventoryService: InventoryService, // Inject InventoryService
+    private userSettingsService: UserSettingsService,
+    private readonly configService: ConfigService
   ) {}
 
-  async create(createItemDto: CreateItemDto): Promise<Item> {
+  async create(req: Request, createItemDto: CreateItemDto): Promise<Item> {
+    const company = await this.getActiveCompanyOfCurrentUser(req);
     const existingItem = await this.itemModel.findOne({
       name: createItemDto.name,
       baseUnitOfMeasure: createItemDto.baseUnitOfMeasure,
-      ...this.existsQuery  // Check active records only
+      ...this.existsQuery,  // Check active records only
+      company
     });
 
     if (existingItem) {
       throw new ConflictException('An item with the same name and unit measure already exists and is active.');
     }
 
-    const createdItem = new this.itemModel(createItemDto);
+    const createdItem = new this.itemModel({...createItemDto, company});
     return createdItem.save();
   }
 
-  async findAll(options: any): Promise<{ total: number, data: any[] }> {
-    const query = this.itemModel.find({ ...this.existsQuery });
+  async findAll(req: Request, options: any): Promise<{ total: number, data: any[] }> {
+    const company = await this.getActiveCompanyOfCurrentUser(req);
+    const query = this.itemModel.find({ ...this.existsQuery, company });
 
     // Apply search if provided
     if (options.search) {
@@ -103,8 +112,9 @@ export class ItemService {
     return result[0].prices;
   }
 
-  async findOne(id: string): Promise<Item> {
-    const existingItem = await this.itemModel.findOne({ _id: id, ...this.existsQuery }).exec();
+  async findOne(req: Request, id: string): Promise<Item> {
+    const company = await this.getActiveCompanyOfCurrentUser(req);
+    const existingItem = await this.itemModel.findOne({ _id: id, ...this.existsQuery, company }).exec();
     if (!existingItem) {
       throw new NotFoundException('Item not found or has been deleted.');
     }
@@ -116,28 +126,31 @@ export class ItemService {
     return { ...existingItem.toObject(), latestPrice, inventoryCount, totalAvailableStock };
   }
 
-  async update(id: string, updateItemDto: UpdateItemDto): Promise<Item> {
+  async update(req: Request, id: string, updateItemDto: UpdateItemDto): Promise<Item> {
+    const company = await this.getActiveCompanyOfCurrentUser(req);
     const existingAlreadyItem = await this.itemModel.findOne({
       _id: { $ne: id },
       name: updateItemDto.name,  // Assuming name should be unique
       baseUnitOfMeasure: updateItemDto.baseUnitOfMeasure,   // Assuming cif should be unique
-      deleted: false  // Ensure we only consider active records
+      deleted: false,  // Ensure we only consider active records
+      company
     });
 
     if (existingAlreadyItem) {
       throw new ConflictException('An item with the same name and unit measure already exists and is active.');
     }
 
-    const existingItem = await this.itemModel.findOne({ _id: id, ...this.existsQuery }).exec();
+    const existingItem = await this.itemModel.findOne({ _id: id, ...this.existsQuery, company }).exec();
     if (!existingItem) {
       throw new NotFoundException('Item not found or has been deleted.');
     }
 
-    return this.itemModel.findByIdAndUpdate(id, updateItemDto, { new: true }).exec();
+    return this.itemModel.findByIdAndUpdate(id, {...updateItemDto, company}, { new: true }).exec();
   }
 
-  async remove(id: string): Promise<Item> {
-    const existingItem = await this.itemModel.findOne({ _id: id, ...this.existsQuery }).exec();
+  async remove(req: Request, id: string): Promise<Item> {
+    const company = await this.getActiveCompanyOfCurrentUser(req);
+    const existingItem = await this.itemModel.findOne({ _id: id, ...this.existsQuery, company }).exec();
     if (!existingItem) {
       throw new NotFoundException('Item not found or has been deleted.');
     }
@@ -145,20 +158,22 @@ export class ItemService {
     return this.itemModel.findByIdAndRemove(id).exec();
   }
 
-  async delete(itemId: string): Promise<any> {
-    const existingItem = await this.itemModel.findOne({ _id: itemId, ...this.existsQuery }).exec();
+  async delete(req: Request, itemId: string): Promise<any> {
+    const company = await this.getActiveCompanyOfCurrentUser(req);
+    const existingItem = await this.itemModel.findOne({ _id: itemId, ...this.existsQuery, company }).exec();
     if (!existingItem) {
       throw new NotFoundException('Item not found or has been deleted.');
     }
 
-    return this.itemModel.findByIdAndUpdate(itemId, this.existsQuery).exec();
+    return this.itemModel.findByIdAndUpdate(itemId, {deleted: true}).exec();
   }
 
-  async addPriceToItem(itemId: string, priceData: any): Promise<Item> {
+  async addPriceToItem(req: Request, itemId: string, priceData: any): Promise<Item> {
+    const company = await this.getActiveCompanyOfCurrentUser(req);
     // Find the item by ID
     const item = await this.itemModel.findById(itemId);
-    if (!item) {
-      throw new NotFoundException(`Item with ID ${itemId} not found`);
+    if (!item || item?.company?.toString() !== company?.toString()) {
+      throw new NotFoundException(`Item not found`);
     }
 
     // Push the new price to the prices array
@@ -168,8 +183,18 @@ export class ItemService {
     return item.save();
   }
 
-  async findAllItems(): Promise<any> {
-    const query = this.itemModel.find({ ...this.existsQuery }).select('_id name baseUnitOfMeasure image');
+  async findAllItems(req: Request): Promise<any> {
+    const company = await this.getActiveCompanyOfCurrentUser(req);
+    const query = this.itemModel.find({ ...this.existsQuery, company }).select('_id name baseUnitOfMeasure image');
+
+    const options = {
+      sortOrder: 'asc',
+      sortBy: 'name',
+    }
+    // Apply sorting
+    const sortOrder = options.sortOrder === 'desc' ? '-' : '';
+    query.sort(`${sortOrder}${options.sortBy}`);
+    query.sort(`createdAt`);
 
     const data = await query.exec();
     const total = await this.itemModel.countDocuments(query.getFilter()).exec();
@@ -186,5 +211,26 @@ export class ItemService {
       total,
       data: itemsWithLatestPrice
     };
+  }
+
+  async getActiveCompanyOfCurrentUser(req: Request): Promise<any> {
+    const authHeader = req.headers['authorization'];
+    if (!authHeader) {
+      throw new NotFoundException(`Unauthoriazed!`);
+    }
+    try {
+      
+      const [, token] = authHeader.split(' ');
+      const JWT_SECRET = this.configService.get<string>('JWT_SECRET');
+      const decoded = jwt.verify(token, JWT_SECRET);
+      const userId = decoded.sub.toString();
+      const { company } = await this.userSettingsService.getByUserId(userId);
+      if (!company) {
+        throw new NotFoundException(`Select a company from settings.`);
+      }
+      return company;
+    } catch (error) {
+      throw new NotFoundException(`Select a company from settings.`);
+    }
   }
 }

@@ -1,34 +1,53 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Customer, CustomerDocument } from '../schemas/customers.schema';
 import { CreateCustomerDto } from '../dto/create-customer.dto';
+import { UserSettingsService } from '../../user-management/services/user-settings.service';
+import { ConfigService } from '@nestjs/config';
+import * as jwt from 'jsonwebtoken';
+import { Request } from 'express';
 
 @Injectable()
 export class CustomerService {
   existsQuery: any = { deleted: false };
 
-  constructor(@InjectModel(Customer.name) private customerModel: Model<CustomerDocument>) {}
+  constructor(
+    @InjectModel(Customer.name) private customerModel: Model<CustomerDocument>,
+    private userSettingsService: UserSettingsService,
+    private readonly configService: ConfigService
+  ) {}
 
-  async create(createCustomerDto: CreateCustomerDto): Promise<Customer> {
-    const existingCustomer = await this.customerModel.findOne({
-      $or: [
-        { name: createCustomerDto.name },  // Assuming name should be unique
-        { cif: createCustomerDto.cif }   // Assuming cif should be unique
-      ],
-      deleted: false  // Ensure we only consider active records
-    });
+  async create(req: Request, createCustomerDto: CreateCustomerDto): Promise<Customer> {
+    const company = await this.getActiveCompanyOfCurrentUser(req);
 
-    if (existingCustomer) {
-      throw new ConflictException('A customer with the given email or phone already exists and is active.');
+    let customerExistConditions = null;
+    if (createCustomerDto.name && createCustomerDto.nif) {
+      customerExistConditions = { 
+        name: createCustomerDto.name,
+        nif: createCustomerDto.nif
+      };
     }
 
-    const createdCustomer = new this.customerModel(createCustomerDto);
+    if (customerExistConditions && Object.keys(customerExistConditions).length) {
+      const existingCustomer = await this.customerModel.findOne({
+        ...customerExistConditions,
+        ...this.existsQuery,  // Check active records only
+        company
+      });
+  
+      if (existingCustomer) {
+        throw new ConflictException('A customer with the given name and nif already exists and is active.');
+      }
+    }
+
+    const createdCustomer = new this.customerModel({...createCustomerDto, company});
     return createdCustomer.save();
   }
 
-  async findAll(options: any): Promise<{ total: number, data: any[] }> {
-    const query = this.customerModel.find({ ...this.existsQuery });
+  async findAll(req: Request, options: any): Promise<{ total: number, data: any[] }> {
+    const company = await this.getActiveCompanyOfCurrentUser(req);
+    const query = this.customerModel.find({ ...this.existsQuery, company });
 
     // Apply search if provided
     if (options.search) {
@@ -61,29 +80,40 @@ export class CustomerService {
     };
   }
 
-  async findOne(id: string): Promise<Customer> {
-    const existingCustomer = await this.customerModel.findOne({ _id: id, deleted: false }).exec();
+  async findOne(req: Request, id: string): Promise<Customer> {
+    const company = await this.getActiveCompanyOfCurrentUser(req);
+    const existingCustomer = await this.customerModel.findOne({ _id: id, ...this.existsQuery, company }).exec();
     if (!existingCustomer) {
       throw new NotFoundException('Customer not found or has been deleted.');
     }
     return existingCustomer;
   }
 
-  async update(id: string, updateCustomerDto: CreateCustomerDto): Promise<Customer> {
-    const existingAlreadyCustomer = await this.customerModel.findOne({
-        _id: { $ne: id },
-        $or: [
-          { name: updateCustomerDto.name },  // Assuming name should be unique
-          { cif: updateCustomerDto.cif }   // Assuming cif should be unique
-        ],
-        deleted: false  // Ensure we only consider active records
-      });
-  
-      if (existingAlreadyCustomer) {
-        throw new ConflictException('A customer with the given email or phone already exists and is active.');
+  async update(req: Request, id: string, updateCustomerDto: CreateCustomerDto): Promise<Customer> {
+    const company = await this.getActiveCompanyOfCurrentUser(req);
+
+    let customerExistConditions = null;
+    if (updateCustomerDto.name && updateCustomerDto.nif) {
+      customerExistConditions = { 
+        name: updateCustomerDto.name,
+        nif: updateCustomerDto.nif
+      };
     }
 
-    const existingCustomer = await this.customerModel.findOne({ _id: id, deleted: false }).exec();
+    if (customerExistConditions && Object.keys(customerExistConditions).length) {
+      const existingCustomer = await this.customerModel.findOne({
+        _id: { $ne: id },
+        ...customerExistConditions,
+        ...this.existsQuery,  // Check active records only
+        company
+      });
+  
+      if (existingCustomer) {
+        throw new ConflictException('A customer with the given name and nif already exists and is active.');
+      }
+    }
+
+    const existingCustomer = await this.customerModel.findOne({ _id: id, ...this.existsQuery, company }).exec();
     if (!existingCustomer) {
       throw new NotFoundException('Customer not found or has been deleted.');
     }
@@ -91,8 +121,9 @@ export class CustomerService {
     return this.customerModel.findByIdAndUpdate(id, updateCustomerDto, { new: true }).exec();
   }
 
-  async remove(id: string): Promise<Customer> {
-    const existingCustomer = await this.customerModel.findOne({ _id: id, deleted: false }).exec();
+  async remove(req: Request, id: string): Promise<Customer> {
+    const company = await this.getActiveCompanyOfCurrentUser(req);
+    const existingCustomer = await this.customerModel.findOne({ _id: id, ...this.existsQuery, company }).exec();
     if (!existingCustomer) {
       throw new NotFoundException('Customer not found or has been deleted.');
     }
@@ -100,8 +131,9 @@ export class CustomerService {
     return this.customerModel.findByIdAndRemove(id).exec();
   }
 
-  async delete(customerId: string): Promise<any> {
-    const existingCustomer = await this.customerModel.findOne({ _id: customerId, deleted: false }).exec();
+  async delete(req: Request, customerId: string): Promise<any> {
+    const company = await this.getActiveCompanyOfCurrentUser(req);
+    const existingCustomer = await this.customerModel.findOne({ _id: customerId, ...this.existsQuery, company }).exec();
     if (!existingCustomer) {
       throw new NotFoundException('Customer not found or has been deleted.');
     }
@@ -109,7 +141,34 @@ export class CustomerService {
     return this.customerModel.findByIdAndUpdate(customerId, { deleted: true }).exec();
   }
 
-  async findAllCustomers(): Promise<{ _id: string, name: string }[]> {
-    return this.customerModel.find({ ...this.existsQuery }).select('_id name image businessName cif nif').exec();
+  async findAllCustomers(req: Request): Promise<{ _id: string, name: string }[]> {
+    const company = await this.getActiveCompanyOfCurrentUser(req);
+    return this.customerModel.find({ ...this.existsQuery, company }).select('_id name image businessName cif nif').exec();
+  }
+
+  async getActiveCompanyOfCurrentUser(req: Request): Promise<any> {
+    const authHeader = req.headers['authorization'];
+    if (!authHeader) {
+      throw new NotFoundException(`Unauthoriazed!`);
+    }
+    try {
+      
+      const [, token] = authHeader.split(' ');
+      const JWT_SECRET = this.configService.get<string>('JWT_SECRET');
+      const decoded = jwt.verify(token, JWT_SECRET);
+      const userId = decoded.sub.toString();
+      const { company } = await this.userSettingsService.getByUserId(userId);
+      if (!company) {
+        throw new NotFoundException(`Select a company from settings.`);
+      }
+      return company;
+    } catch (error) {
+      throw new NotFoundException(`Select a company from settings.`);
+    }
+  }
+  // Helper method to find customer IDs by name
+  async findCustomerIdsByName(name: string): Promise<Types.ObjectId[]> {
+    const customers = await this.customerModel.find({ name: { $regex: name, $options: 'i' } }).select('_id').exec();
+    return customers.map(customer => customer._id.toString());
   }
 }

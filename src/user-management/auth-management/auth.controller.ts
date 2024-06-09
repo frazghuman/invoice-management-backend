@@ -17,7 +17,7 @@ export class AuthController {
       throw new UnauthorizedException('Invalid credentials');
     }
     if (!user.verified) {
-      throw new UnauthorizedException('Unverified User');
+      throw new UnauthorizedException('User not verified');
     }
     const accessToken = await this.authService.login(user);
     return { accessToken };

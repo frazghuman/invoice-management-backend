@@ -1,7 +1,7 @@
 import { Controller, Post, Body, UseGuards, SetMetadata, UsePipes, Req, Get, Query, Param, Put } from '@nestjs/common';
 import { ProposalService } from '../services/proposal.service';
 import { CreateProposalDto } from '../dto/proposal.dto';
-import { PermissionAuthGuard } from 'src/auth/permission-auth-guard';
+import { PermissionAuthGuard } from '../../auth/permission-auth-guard';
 import { JoiValidationPipe } from '@common/pipes/joi-validation.pipe';
 import { Proposal, ProposalValidationSchema } from '../schemas/proposal.schema';
 import { Request } from 'express';

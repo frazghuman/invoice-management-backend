@@ -5,8 +5,8 @@ import { ProjectFile, ProjectFileSchema } from './schemas/project-file.schema';
 import { ProjectFileService } from './services/project-file.service';
 import { ConfigModule } from '@nestjs/config';
 import { MulterModule } from '@nestjs/platform-express';
-import { multerOptions } from 'src/cloudinary/providers/multer-config';
-import { CloudinaryProvider } from 'src/cloudinary/providers/cloudinary.provider';
+import { multerOptions } from '../cloudinary/providers/multer-config';
+import { CloudinaryProvider } from '../cloudinary/providers/cloudinary.provider';
 
 @Module({
   imports: [

@@ -1,7 +1,7 @@
 import { Controller, Post, Body, UseGuards, SetMetadata, UsePipes, Req, Get, Query, Param, Put } from '@nestjs/common';
 import { InvoiceService } from '../services/invoice.service';
 import { CreateInvoiceDto } from '../dto/invoice.dto';
-import { PermissionAuthGuard } from 'src/auth/permission-auth-guard';
+import { PermissionAuthGuard } from '../../auth/permission-auth-guard';
 import { JoiValidationPipe } from '@common/pipes/joi-validation.pipe';
 import { Invoice, InvoiceValidationSchema } from '../schemas/invoice.schema';
 import { Request } from 'express';

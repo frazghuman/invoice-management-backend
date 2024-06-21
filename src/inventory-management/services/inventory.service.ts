@@ -1,10 +1,10 @@
 // inventory.service.ts
 import { Injectable, NotFoundException, BadRequestException, ConflictException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { ClientSession, Model, Types } from 'mongoose';
 import { Inventory, InventoryDocument } from '../schemas/inventory.schema';
 import { ReceiveStockInventoryDto } from '../dto/inventory.dto';
-import { UserSettingsService } from '../../user-management/services/user-settings.service';
+import { ItemService } from './item.service';
 
 @Injectable()
 export class InventoryService {
@@ -13,7 +13,7 @@ export class InventoryService {
   private readonly logger = new Logger(InventoryService.name);
   constructor(
     @InjectModel(Inventory.name) private inventoryModel: Model<InventoryDocument>,
-    private userSettingsService: UserSettingsService
+    // private itemService: ItemService
   ) {}
 
   async getInventoriesByItem(itemId: string): Promise<Inventory[]> {
@@ -156,32 +156,49 @@ export class InventoryService {
     }
   }
 
-  async updateSoldOutStock(itemId: Types.ObjectId, quantity: number): Promise<void> {
-    // Fetch the inventory items for the given item ordered by stockReceivedDate (FIFO)
-    const inventoryItems = await this.inventoryModel.find({ item: itemId, deleted: false }).sort({ stockReceivedDate: 1 }).exec();
-
+  async updateSoldOutStock(itemId: Types.ObjectId, quantity: number, session: ClientSession): Promise<{ lotId: Types.ObjectId; quantity: number }[]> {
+    // Fetch inventory items for the given item, ordered by stockReceivedDate (FIFO) and having stock greater than sold out stock
+    const inventoryItems = await this.inventoryModel.find({
+      item: itemId,
+      deleted: false,
+      $expr: { $gt: ["$totalStock", "$soldOutStock"] } // Only fetch items with available stock
+    }).sort({ stockReceivedDate: 1 }).session(session).exec();
+  
     let remainingQuantity = quantity;
-
+    const lotsUsed = [];
+  
     for (const inventoryItem of inventoryItems) {
       if (remainingQuantity <= 0) break;
-
+  
       const availableStock = inventoryItem.totalStock - inventoryItem.soldOutStock;
-
-      if (availableStock >= remainingQuantity) {
-        // If current inventory item can fulfill the remaining quantity
-        inventoryItem.soldOutStock += remainingQuantity;
-        remainingQuantity = 0;
-      } else {
-        // If current inventory item cannot fulfill the remaining quantity
-        inventoryItem.soldOutStock += availableStock;
-        remainingQuantity -= availableStock;
+      const lotUsed = { lotId: new Types.ObjectId(inventoryItem._id), quantity: 0 };
+  
+      if (availableStock > 0) {
+        if (availableStock >= remainingQuantity) {
+          inventoryItem.soldOutStock += remainingQuantity;
+          lotUsed.quantity = remainingQuantity;
+          remainingQuantity = 0;
+        } else {
+          inventoryItem.soldOutStock += availableStock;
+          lotUsed.quantity = availableStock;
+          remainingQuantity -= availableStock;
+        }
+        
+        lotsUsed.push(lotUsed);
+        inventoryItem.inUse = true;
+        await inventoryItem.save({ session });
       }
-
-      await inventoryItem.save();
     }
-
+  
     if (remainingQuantity > 0) {
-      throw new NotFoundException('Not enough stock available to fulfill the order.');
+      // const itemName = this.itemService.getItemNameById(itemId);
+      // throw new NotFoundException(`Not enough stock of ${itemName} available to fulfill the order.`);
+      throw new NotFoundException(`A product not have enough stock available to fulfill the order.`);
     }
+  
+    return lotsUsed;
   }
+  
+  
+  
 }

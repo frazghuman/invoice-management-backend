@@ -64,4 +64,17 @@ export class InvoiceController {
   }
 
   // Other controller methods...
+
+  @Post('update-invoice-numbers')
+  @UseGuards(PermissionAuthGuard)
+  @SetMetadata('permissions', ['manage-companies'])
+  async updateInvoiceNumbers(): Promise<{ message: string }> {
+    try {
+      await this.invoiceService.updateInvoiceNumbers();
+      return { message: 'Invoice numbers updated successfully' };
+      
+    } catch (error) {
+      return { message: JSON.stringify(error) };
+    }
+  }
 }

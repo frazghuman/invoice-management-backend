@@ -14,6 +14,9 @@ export class InvoiceItem {
 
   @Prop({ required: true })
   quantity: number;
+
+  @Prop([{ lotId: { type: Types.ObjectId, ref: 'InventoryItem' }, quantity: Number }])
+  lots: { lotId: Types.ObjectId; quantity: number }[];
 }
 
 export const InvoiceItemSchema = SchemaFactory.createForClass(InvoiceItem);
@@ -57,6 +60,9 @@ export class Invoice {
 
   @Prop({ default: false })
   isSent: boolean;
+
+  @Prop({ unique: true, sparse: true, default: 1 })
+  invoiceNumber: number; // New field for auto-incremented invoice number
 
   @Prop({ default: false })
   deleted: boolean;

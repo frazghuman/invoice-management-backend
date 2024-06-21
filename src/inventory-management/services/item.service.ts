@@ -233,4 +233,8 @@ export class ItemService {
       throw new NotFoundException(`Select a company from settings.`);
     }
   }
+
+  async getItemNameById(itemId: Types.ObjectId) {
+    return this.itemModel.findOne({_id: itemId}).select('name');
+  }
 }

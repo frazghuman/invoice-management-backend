@@ -14,6 +14,10 @@ class CreateInvoiceItemDto {
   @IsNotEmpty()
   @IsNumber()
   quantity: number;
+
+  @IsOptional()
+  @IsArray()
+  lots?: { lotId: Types.ObjectId; quantity: number }[];
 }
 
 export class CreateInvoiceDto {

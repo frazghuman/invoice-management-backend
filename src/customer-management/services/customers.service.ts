@@ -7,6 +7,8 @@ import { UserSettingsService } from '../../user-management/services/user-setting
 import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
 import { Request } from 'express';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class CustomerService {
@@ -144,6 +146,58 @@ export class CustomerService {
   async findAllCustomers(req: Request): Promise<{ _id: string, name: string }[]> {
     const company = await this.getActiveCompanyOfCurrentUser(req);
     return this.customerModel.find({ ...this.existsQuery, company }).select('_id name image businessName cif nif').exec();
+  }
+
+  async importCustomers(req: Request): Promise<any[]> {
+
+    // Assuming the data.json file is in the same directory as this service file
+    const dataFilePath = path.join(__dirname, '..', 'data', 'customers.json');
+    
+    const rawData = fs.readFileSync(dataFilePath, 'utf8');
+    const cRawData = JSON.parse(rawData);
+    const customers = [];
+    cRawData.forEach((rawData) => {
+      const customer = {
+        name: "",
+        email: "",
+        phone:"",
+        businessName:"",
+        cif:"",
+        nif:"",
+        address:"",
+        additionalInformation:"",
+        image:""
+      }
+      
+      const {address, address2, address3, address4, ...cstData} = rawData;
+
+      const addressItems = [];
+      if (address) {
+        addressItems.push(address);
+      }
+      if (address2) {
+        addressItems.push(address2);
+      }
+      if (address3) {
+        addressItems.push(address3);
+      }
+      if (address4) {
+        addressItems.push(address4);
+      }
+
+      customer['address'] = addressItems.join(', ');
+
+      customers.push({...customer, ...cstData});
+    })
+
+    for (let index = 0; index < customers.length; index++) {
+      const cst = customers[index];
+      if (cst['name']) {
+        await this.create(req, cst);
+      }
+    }
+
+    return customers;
   }
 
   async getActiveCompanyOfCurrentUser(req: Request): Promise<any> {

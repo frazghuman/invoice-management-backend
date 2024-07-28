@@ -1,6 +1,6 @@
 import { Controller, Post, Body, UseGuards, SetMetadata, UsePipes, Req, Get, Query, Param, Put } from '@nestjs/common';
 import { InvoiceService } from '../services/invoice.service';
-import { CreateInvoiceDto } from '../dto/invoice.dto';
+import { CreateInvoiceDto, UpdateInvoiceDto } from '../dto/invoice.dto';
 import { PermissionAuthGuard } from '../../auth/permission-auth-guard';
 import { JoiValidationPipe } from '@common/pipes/joi-validation.pipe';
 import { Invoice, InvoiceValidationSchema } from '../schemas/invoice.schema';
@@ -21,9 +21,17 @@ export class InvoiceController {
   @Put(':id')
   @UseGuards(PermissionAuthGuard)
   @SetMetadata('permissions', ['invoices-management'])
-  @UsePipes(new JoiValidationPipe(InvoiceValidationSchema.update))
-  async update(@Req() req: Request, @Param('id') id: string, @Body() updateInvoiceDto: CreateInvoiceDto): Promise<Invoice> {
+  // @UsePipes(new JoiValidationPipe(InvoiceValidationSchema.update))
+  async update(@Req() req: Request, @Param('id') id: string, @Body() updateInvoiceDto: any): Promise<Invoice> {
     return this.invoiceService.update(req, id, updateInvoiceDto);
+  }
+
+  @Put('return/:id')
+  @UseGuards(PermissionAuthGuard)
+  @SetMetadata('permissions', ['invoices-management'])
+  // @UsePipes(new JoiValidationPipe(InvoiceValidationSchema.update))
+  async returnInvoice(@Req() req: Request, @Param('id') id: string, @Body() updateInvoiceDto: any): Promise<Invoice> {
+    return this.invoiceService.returnInvoice(req, id, updateInvoiceDto);
   }
 
   @Get()

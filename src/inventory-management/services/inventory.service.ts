@@ -156,7 +156,7 @@ export class InventoryService {
     }
   }
 
-  async updateSoldOutStock(itemId: Types.ObjectId, quantity: number, session: ClientSession): Promise<{ lotId: Types.ObjectId; quantity: number }[]> {
+  async updateSoldOutStock(itemId: Types.ObjectId, quantity: number, session: ClientSession): Promise<{lotsUsed: { lotId: Types.ObjectId; quantity: number }[], lowStock: boolean}> {
     // Fetch inventory items for the given item, ordered by stockReceivedDate (FIFO) and having stock greater than sold out stock
     const inventoryItems = await this.inventoryModel.find({
       item: itemId,
@@ -190,13 +190,40 @@ export class InventoryService {
       }
     }
   
+    let lowStock = false;
     if (remainingQuantity > 0) {
       // const itemName = this.itemService.getItemNameById(itemId);
       // throw new NotFoundException(`Not enough stock of ${itemName} available to fulfill the order.`);
-      throw new NotFoundException(`A product not have enough stock available to fulfill the order.`);
+      // throw new NotFoundException(`Stock Alert: One or more items in your order do not have enough stock to be fulfilled completely.`);
+      lowStock = true;
     }
   
-    return lotsUsed;
+    return {lotsUsed: lotsUsed, lowStock: lowStock};
+  }
+
+  async returnSoldOutStock(inventoryId: Types.ObjectId, returnQuantity: number, session: ClientSession): Promise<any> {
+    try {
+        const inventoryItem = await this.inventoryModel.findById(inventoryId).session(session).exec();
+    
+        if (!inventoryItem) {
+            // throw new Error(`Inventory item with ID ${inventoryId} not found.`);
+        } else {
+
+          inventoryItem.soldOutStock -= returnQuantity;
+
+          if(inventoryItem.soldOutStock < 0) {
+            inventoryItem.soldOutStock = 0;
+          }
+      
+          const inventoryItemUpdated = await inventoryItem.save({ session });
+  
+          return inventoryItemUpdated; // Optionally return the updated inventory item
+        }
+        return true;
+    } catch (error) {
+        // Handle errors appropriately
+        throw new Error(`Failed to update soldOutStock for inventory item with ID ${inventoryId}: ${error.message}`);
+    }
   }
   
   

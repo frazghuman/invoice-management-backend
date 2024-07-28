@@ -54,6 +54,12 @@ export class CustomerController {
     return customers;
   }
 
+  @Get('import')
+  async importCustomers(@Req() req: Request) {
+    const customers = await this.customerService.importCustomers(req);
+    return customers;
+  }
+
   @Get(':id')
   @UseGuards(PermissionAuthGuard)
   @SetMetadata('permissions', ['customers-management'])

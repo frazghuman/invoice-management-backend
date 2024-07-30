@@ -5,10 +5,11 @@ import { PermissionAuthGuard } from '../../auth/permission-auth-guard';
 import { JoiValidationPipe } from '@common/pipes/joi-validation.pipe';
 import { Invoice, InvoiceValidationSchema } from '../schemas/invoice.schema';
 import { Request } from 'express';
+import { SalesSummaryService } from '../services/sales-summary.service';
 
 @Controller('invoices')
 export class InvoiceController {
-  constructor(private readonly invoiceService: InvoiceService) {}
+  constructor(private readonly invoiceService: InvoiceService, private readonly salesSummaryService: SalesSummaryService) {}
 
   @Post()
   @UseGuards(PermissionAuthGuard)
@@ -84,5 +85,20 @@ export class InvoiceController {
     } catch (error) {
       return { message: JSON.stringify(error) };
     }
+  }
+
+  @Get('report/sales-summary')
+  @UseGuards(PermissionAuthGuard)
+  @SetMetadata('permissions', ['reports-management'])
+  async getSalesSummary(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('granularity') granularity: string
+  ) {
+    // return this.salesSummaryService.getSalesSummaryReport(startDate, endDate, granularity);
+
+    const utcStartDate = new Date(startDate).toISOString();
+    const utcEndDate = new Date(endDate).toISOString();
+    return this.salesSummaryService.getSalesSummaryReport(utcStartDate, utcEndDate, granularity);
   }
 }

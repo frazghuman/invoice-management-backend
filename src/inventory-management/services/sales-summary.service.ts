@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import * as moment from 'moment';
 import { Invoice, InvoiceDocument } from '../schemas/invoice.schema';
+import * as moment from 'moment';
 
 @Injectable()
 export class SalesSummaryService {
   constructor(@InjectModel(Invoice.name) private invoiceModel: Model<InvoiceDocument>) {}
 
   async getSalesSummaryReport(startDate: string, endDate: string, granularity: string) {
-    let groupBy, startDateExpression, endDateExpression;
+    let groupBy, fromDateExpression, toDateExpression;
 
     switch (granularity) {
       case 'daily':
@@ -18,29 +18,30 @@ export class SalesSummaryService {
           month: { $month: "$date" },
           day: { $dayOfMonth: "$date" },
         };
-        startDateExpression = {
+        fromDateExpression = {
           $dateFromParts: {
             year: { $year: "$date" },
             month: { $month: "$date" },
             day: { $dayOfMonth: "$date" },
           },
         };
-        endDateExpression = startDateExpression;
+        toDateExpression = fromDateExpression;
         break;
       case 'weekly':
         groupBy = {
           year: { $year: "$date" },
-          week: { $week: "$date" },
+          week: { $isoWeek: "$date" },
         };
-        startDateExpression = {
+        fromDateExpression = {
           $dateFromParts: {
-            year: { $year: "$date" },
+            isoWeekYear: { $isoWeekYear: "$date" },
             isoWeek: { $isoWeek: "$date" },
+            isoDayOfWeek: 1, // Start of ISO week is Monday
           },
         };
-        endDateExpression = {
+        toDateExpression = {
           $dateAdd: {
-            startDate: startDateExpression,
+            startDate: fromDateExpression,
             unit: "day",
             amount: 6,
           },
@@ -52,14 +53,14 @@ export class SalesSummaryService {
           year: { $year: "$date" },
           month: { $month: "$date" },
         };
-        startDateExpression = {
+        fromDateExpression = {
           $dateFromParts: {
             year: { $year: "$date" },
             month: { $month: "$date" },
             day: 1,
           },
         };
-        endDateExpression = {
+        toDateExpression = {
           $dateAdd: {
             startDate: {
               $dateFromParts: {
@@ -80,8 +81,8 @@ export class SalesSummaryService {
       {
         $match: {
           date: {
-            $gte: new Date(startDate),
-            $lte: new Date(endDate),
+            $gte: new Date(startDate),  // Ensure dates are in ISO format
+            $lte: new Date(endDate),    // Ensure dates are in ISO format
           },
           deleted: false // Optional: if you want to exclude deleted invoices
         },
@@ -93,27 +94,22 @@ export class SalesSummaryService {
           totalSales: { $sum: 1 },
           totalRevenue: { $sum: "$amountDue" },
           averageInvoiceAmount: { $avg: "$amountDue" },
+          fromDate: { $first: "$date" },  // get the first date in the group
+          toDate: { $last: "$date" }  // get the last date in the group
         },
       },
-      // Add fields for startDate and endDate
-      {
-        $addFields: {
-          startDate: startDateExpression,
-          endDate: endDateExpression,
-        },
-      },
-      // Sort by the startDate
+      // Sort by the fromDate
       {
         $sort: {
-          startDate: 1,
+          fromDate: 1,
         },
       },
       // Project the results to a more readable format
       {
         $project: {
           _id: 0,
-          startDate: 1,
-          endDate: 1,
+          fromDate: 1,
+          toDate: 1,
           totalSales: 1,
           totalRevenue: 1,
           averageInvoiceAmount: 1,
@@ -124,8 +120,8 @@ export class SalesSummaryService {
     // Format the dates to 'YYYY-MM-DD'
     return salesSummary.map(summary => ({
       ...summary,
-      startDate: moment(summary.startDate).format('YYYY-MM-DD'),
-      endDate: moment(summary.endDate).format('YYYY-MM-DD'),
+      fromDate: moment(summary.fromDate).utc().format('YYYY-MM-DD'), // Ensure UTC
+      toDate: moment(summary.toDate).utc().format('YYYY-MM-DD'),     // Ensure UTC
     }));
   }
 }

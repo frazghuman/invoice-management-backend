@@ -15,6 +15,7 @@ import { CustomerSearviceModule } from '../customer-management/customer-service.
 import { Proposal, ProposalSchema } from './schemas/proposal.schema';
 import { ProposalService } from './services/proposal.service';
 import { ProposalController } from './controllers/proposal.controller';
+import { SalesSummaryService } from './services/sales-summary.service';
 // import { InventoryService } from './inventory.service';
 // import { InventoryController } from './inventory.controller';
 
@@ -40,6 +41,7 @@ import { ProposalController } from './controllers/proposal.controller';
     InventoryService,
     InvoiceService,
     ProposalService,
+    SalesSummaryService,
     ConfigService
   ],
   exports: [ItemService]

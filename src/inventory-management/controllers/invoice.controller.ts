@@ -93,12 +93,13 @@ export class InvoiceController {
   async getSalesSummary(
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
-    @Query('granularity') granularity: string
+    @Query('granularity') granularity: string,
+    @Query('timezone') timezone: string
   ) {
     // return this.salesSummaryService.getSalesSummaryReport(startDate, endDate, granularity);
 
     const utcStartDate = new Date(startDate).toISOString();
     const utcEndDate = new Date(endDate).toISOString();
-    return this.salesSummaryService.getSalesSummaryReport(utcStartDate, utcEndDate, granularity);
+    return this.salesSummaryService.getSalesSummaryReport(utcStartDate, utcEndDate, granularity, timezone);
   }
 }

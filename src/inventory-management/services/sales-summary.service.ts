@@ -2,41 +2,63 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Invoice, InvoiceDocument } from '../schemas/invoice.schema';
-import * as moment from 'moment';
+import * as moment from 'moment-timezone';
 
 @Injectable()
 export class SalesSummaryService {
   constructor(@InjectModel(Invoice.name) private invoiceModel: Model<InvoiceDocument>) {}
 
-  async getSalesSummaryReport(startDate: string, endDate: string, granularity: string) {
+  async getSalesSummaryReport(startDate: string, endDate: string, granularity: string, timezone: string) {
     let groupBy, fromDateExpression, toDateExpression;
+
+    // Convert startDate and endDate to cover the entire day in the specified timezone
+    const startOfDay = moment.tz(startDate, timezone).startOf('day').toDate();
+    const endOfDay = moment.tz(endDate, timezone).endOf('day').toDate();
 
     switch (granularity) {
       case 'daily':
         groupBy = {
-          year: { $year: "$date" },
-          month: { $month: "$date" },
-          day: { $dayOfMonth: "$date" },
+          year: { $year: { date: "$date", timezone: timezone } },
+          month: { $month: { date: "$date", timezone: timezone } },
+          day: { $dayOfMonth: { date: "$date", timezone: timezone } },
         };
         fromDateExpression = {
           $dateFromParts: {
-            year: { $year: "$date" },
-            month: { $month: "$date" },
-            day: { $dayOfMonth: "$date" },
+            year: { $year: { date: "$date", timezone: timezone } },
+            month: { $month: { date: "$date", timezone: timezone } },
+            day: { $dayOfMonth: { date: "$date", timezone: timezone } },
+            hour: 0,
+            minute: 0,
+            second: 0,
+            timezone: timezone,
           },
         };
-        toDateExpression = fromDateExpression;
+        toDateExpression = {
+          $dateFromParts: {
+            year: { $year: { date: "$date", timezone: timezone } },
+            month: { $month: { date: "$date", timezone: timezone } },
+            day: { $dayOfMonth: { date: "$date", timezone: timezone } },
+            hour: 23,
+            minute: 59,
+            second: 59,
+            timezone: timezone,
+          },
+        };
         break;
       case 'weekly':
         groupBy = {
-          year: { $year: "$date" },
-          week: { $isoWeek: "$date" },
+          year: { $year: { date: "$date", timezone: timezone } },
+          week: { $isoWeek: { date: "$date", timezone: timezone } },
         };
         fromDateExpression = {
           $dateFromParts: {
-            isoWeekYear: { $isoWeekYear: "$date" },
-            isoWeek: { $isoWeek: "$date" },
+            isoWeekYear: { $isoWeekYear: { date: "$date", timezone: timezone } },
+            isoWeek: { $isoWeek: { date: "$date", timezone: timezone } },
             isoDayOfWeek: 1, // Start of ISO week is Monday
+            hour: 0,
+            minute: 0,
+            second: 0,
+            timezone: timezone,
           },
         };
         toDateExpression = {
@@ -50,22 +72,26 @@ export class SalesSummaryService {
       case 'monthly':
       default:
         groupBy = {
-          year: { $year: "$date" },
-          month: { $month: "$date" },
+          year: { $year: { date: "$date", timezone: timezone } },
+          month: { $month: { date: "$date", timezone: timezone } },
         };
         fromDateExpression = {
           $dateFromParts: {
-            year: { $year: "$date" },
-            month: { $month: "$date" },
+            year: { $year: { date: "$date", timezone: timezone } },
+            month: { $month: { date: "$date", timezone: timezone } },
             day: 1,
+            hour: 0,
+            minute: 0,
+            second: 0,
+            timezone: timezone,
           },
         };
         toDateExpression = {
           $dateAdd: {
             startDate: {
               $dateFromParts: {
-                year: { $year: "$date" },
-                month: { $add: [{ $month: "$date" }, 1] },
+                year: { $year: { date: "$date", timezone: timezone } },
+                month: { $add: [{ $month: { date: "$date", timezone: timezone } }, 1] },
                 day: 1,
               },
             },
@@ -81,8 +107,8 @@ export class SalesSummaryService {
       {
         $match: {
           date: {
-            $gte: new Date(startDate),  // Ensure dates are in ISO format
-            $lte: new Date(endDate),    // Ensure dates are in ISO format
+            $gte: startOfDay,  // Ensure dates cover the entire day in the local timezone
+            $lte: endOfDay,    // Ensure dates cover the entire day in the local timezone
           },
           deleted: false // Optional: if you want to exclude deleted invoices
         },
@@ -117,11 +143,11 @@ export class SalesSummaryService {
       },
     ]);
 
-    // Format the dates to 'YYYY-MM-DD'
+    // Format the dates to include hours, minutes, and seconds
     return salesSummary.map(summary => ({
       ...summary,
-      fromDate: moment(summary.fromDate).utc().format('YYYY-MM-DD'), // Ensure UTC
-      toDate: moment(summary.toDate).utc().format('YYYY-MM-DD'),     // Ensure UTC
+      fromDate: moment(summary.fromDate).utc().format('YYYY-MM-DDTHH:mm:ss[Z]'), // Ensure UTC
+      toDate: moment(summary.toDate).utc().format('YYYY-MM-DDTHH:mm:ss[Z]'),     // Ensure UTC
     }));
   }
 }

@@ -10,6 +10,7 @@ import { Request } from 'express';
 import { CustomerService } from '../../customer-management/services/customers.service';
 import { InventoryService } from './inventory.service';
 import { Inventory, InventoryDocument } from '../schemas/inventory.schema';
+import { convertToStartAndEndOfDayInUTC } from '@common/functions/convert-date';
 
 @Injectable()
 export class InvoiceService {
@@ -243,16 +244,12 @@ export class InvoiceService {
           );
           break;
         case 'date':
-          const searchDate = new Date(options.search);
-          const startOfDay = new Date(searchDate).setUTCHours(0, 0, 0, 0);
-          const endOfDay = new Date(searchDate).setUTCHours(23, 59, 59, 999);
-          query.where('date').gte(startOfDay).lt(endOfDay);
+          const date = convertToStartAndEndOfDayInUTC(options.search);
+          query.where('date').gte(date.startOfDayUTC as unknown as number).lte(date.endOfDayUTC as unknown as number);
           break;
         case 'dueDate':
-          const searchDueDate = new Date(options.search);
-          const startOfDueDay = new Date(searchDueDate).setUTCHours(0, 0, 0, 0);
-          const endOfDueDay = new Date(searchDueDate).setUTCHours(23, 59, 59, 999);
-          query.where('dueDate').gte(startOfDueDay).lt(endOfDueDay);
+          const dueDate = convertToStartAndEndOfDayInUTC(options.search);
+          query.where('dueDate').gte(dueDate.startOfDayUTC as unknown as number).lte(dueDate.endOfDayUTC as unknown as number);
           break;
         default:
           break;

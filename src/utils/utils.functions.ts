@@ -13,4 +13,13 @@ export function formatDate(dateString: string): string {
     // Format the date components into a string in the desired format of DD/MM/YYYY
     return `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year.toString()}`;
 }
+
+export function isValidJSON(value: string): boolean {
+  try {
+    JSON.parse(value);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
   

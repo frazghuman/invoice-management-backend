@@ -25,7 +25,7 @@ export class InventoryService {
       const inventories = await this.inventoryModel.find({
         item: itemId,
         ...this.existsQuery,
-        $expr: { $gt: ['$totalStock', { $ifNull: ['$soldOutStock', 0] }] }
+        // $expr: { $gt: ['$totalStock', { $ifNull: ['$soldOutStock', 0] }] }
       }).exec();
 
       return inventories;

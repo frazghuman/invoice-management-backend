@@ -91,6 +91,7 @@ export class InvoiceController {
   @UseGuards(PermissionAuthGuard)
   @SetMetadata('permissions', ['reports-management'])
   async getSalesSummary(
+    @Req() req: Request,
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
     @Query('granularity') granularity: string,
@@ -100,6 +101,38 @@ export class InvoiceController {
 
     const utcStartDate = new Date(startDate).toISOString();
     const utcEndDate = new Date(endDate).toISOString();
-    return this.salesSummaryService.getSalesSummaryReport(utcStartDate, utcEndDate, granularity, timezone);
+    return this.salesSummaryService.getSalesSummaryReport(req, utcStartDate, utcEndDate, granularity, timezone);
+  }
+
+  @Get('report/by-product')
+  @UseGuards(PermissionAuthGuard)
+  @SetMetadata('permissions', ['reports-management'])
+  async getSalesByProduct(
+    @Req() req: Request,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('timezone') timezone: string,
+  ) {
+    // return this.salesSummaryService.getSalesSummaryReport(startDate, endDate, granularity);
+
+    const utcStartDate = new Date(startDate).toISOString();
+    const utcEndDate = new Date(endDate).toISOString();
+    return this.salesSummaryService.getSalesByProduct(req, utcStartDate, utcEndDate, timezone);
+  }
+
+  @Get('report/by-customer')
+  @UseGuards(PermissionAuthGuard)
+  @SetMetadata('permissions', ['reports-management'])
+  async getSalesByCustomer(
+    @Req() req: Request,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('timezone') timezone: string,
+  ) {
+    // return this.salesSummaryService.getSalesSummaryReport(startDate, endDate, granularity);
+
+    const utcStartDate = new Date(startDate).toISOString();
+    const utcEndDate = new Date(endDate).toISOString();
+    return this.salesSummaryService.getSalesByCustomer(req, utcStartDate, utcEndDate, timezone);
   }
 }

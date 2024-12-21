@@ -13,6 +13,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { CustomersModule } from './customer-management/customer.module';
 import { InventoryModule } from './inventory-management/inventory.module';
+import { ExpenseModule } from './expense-management/expense.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { InventoryModule } from './inventory-management/inventory.module';
     CompanyModule,
     CustomersModule,
     InventoryModule,
+    ExpenseModule,
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'uploads'),
       serveRoot: '/files/',

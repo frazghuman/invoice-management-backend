@@ -8,6 +8,7 @@ import { ProjectFileService } from './services/project-file.service';
 import { DocsMiddleware, ExcelMiddleware, ImageMiddleware } from '../middlewares/allowed-file-formats.middleware';
 import * as path from 'path';
 import { ExcelServiceModule } from './services/excel.module';
+import { FileRequest } from './interfaces/file-request.interface';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { ExcelServiceModule } from './services/excel.module';
     MulterModule.register({
       storage: diskStorage({
         destination: './uploads',
-        filename: (req, file, cb) => {
+        filename: (req: FileRequest, file, cb) => {
           // check if the file format is valid
           const [fileName, fileExtension] = getFileNameAndExtension(file.originalname);
 
@@ -25,7 +26,7 @@ import { ExcelServiceModule } from './services/excel.module';
             const message = `${allowedFormats ?? 'No any'} files are allowed`;
             cb(
               new UnsupportedMediaTypeException(message),
-              false,
+              file.originalname ?? '',
             )
             return;
           }
@@ -35,7 +36,7 @@ import { ExcelServiceModule } from './services/excel.module';
           cb(null, fileName + '-' + uniqueSuffix + '.' + fileExtension);
         },
       }),
-      fileFilter: (req, file, cb) => {
+      fileFilter: (req: FileRequest, file, cb) => {
         // check if the file format is valid
         const fileExtension = file.originalname.split('.').pop();
 

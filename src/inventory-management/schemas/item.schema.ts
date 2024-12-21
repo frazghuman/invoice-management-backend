@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import * as Joi from 'joi';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export type ItemDocument = Item & Document;
 
@@ -32,6 +32,15 @@ export class Item {
   @Prop({ type: PriceSchema })
   latestPrice?: Price[];
 
+  @Prop({ type: Types.ObjectId, ref: 'Company', required: true })
+  company: Types.ObjectId; // Reference to Company schema
+
+  @Prop()
+  inventoryCount?: number;
+
+  @Prop()
+  totalAvailableStock?: number;
+
   @Prop()
   image?: string; // Assuming this is a URL to an image
 
@@ -41,8 +50,11 @@ export class Item {
 
 export const ItemSchema = SchemaFactory.createForClass(Item);
 
-// Adding a compound index
-ItemSchema.index({ name: 1, baseUnitOfMeasure: 1, deleted: 1 }, { unique: true });
+// Adding a partial index for unique constraint on non-deleted items
+ItemSchema.index(
+  { name: 1, baseUnitOfMeasure: 1, company: 1, deleted: 1 },
+  { unique: true, partialFilterExpression: { deleted: false } }
+);
 
 // Price validation schema
 export const itemPriceValidationSchema = Joi.object({
@@ -53,14 +65,14 @@ export const itemPriceValidationSchema = Joi.object({
 export const ItemValidationSchema = {
   create: Joi.object({
       name: Joi.string().min(1).required(),
-      description: Joi.string().optional(),
+      description: Joi.string().allow('').allow(null).optional(),
       baseUnitOfMeasure: Joi.string().required(),
       prices: Joi.array().items(itemPriceValidationSchema).optional(),
       image: Joi.string().allow('').allow(null).optional(),
   }),
   update: Joi.object({
       name: Joi.string().min(1).optional(),
-      description: Joi.string().allow(''), // Correct usage of allow for an empty string
+      description: Joi.string().allow('').allow(null).optional(), // Correct usage of allow for an empty string
       baseUnitOfMeasure: Joi.string().optional(),
       prices: Joi.array().items(itemPriceValidationSchema).optional(), // Ensure optional for the whole array
       image: Joi.string().allow('').allow(null).optional(),

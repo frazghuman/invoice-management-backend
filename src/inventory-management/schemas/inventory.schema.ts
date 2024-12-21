@@ -21,7 +21,7 @@ export class Inventory {
   @Prop({ required: true })
   stockReceivedDate: Date;
 
-  @Prop({ required: true })
+  @Prop({ default: 0 })
   soldOutStock: number;
 
   @Prop()
@@ -38,19 +38,19 @@ export const InventorySchema = SchemaFactory.createForClass(Inventory);
 
 export const InventoryValidationSchema = {
     create: Joi.object({
-        itemId: Joi.string().hex().length(24).required(),  // Assuming MongoDB ObjectId
+        item: Joi.string().hex().length(24).required(),  // Assuming MongoDB ObjectId
         lotNo: Joi.number().required(),
         purchasePrice: Joi.number().positive().required(),
         totalStock: Joi.number().positive().required(),
         stockReceivedDate: Joi.date().iso().required().label('Stock Received Date'),
-        description: Joi.string().allow('').optional()
+        description: Joi.string().allow('').allow(null).optional()
       }),
     update: Joi.object({
-        itemId: Joi.string().hex().length(24),  // Assuming MongoDB ObjectId
+        item: Joi.string().hex().length(24),  // Assuming MongoDB ObjectId
         lotNo: Joi.number(),
         purchasePrice: Joi.number().positive(),
         totalStock: Joi.number().positive(),
         stockReceivedDate: Joi.date().iso().required().label('Stock Received Date'),
-        description: Joi.string().allow('')
+        description: Joi.string().allow('').allow(null)
       })
 }

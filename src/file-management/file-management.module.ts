@@ -1,76 +1,36 @@
 import { BadRequestException, MiddlewareConsumer, Module, NestModule, RequestMethod, UnsupportedMediaTypeException } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { MulterModule } from '@nestjs/platform-express';
 import { FileUploadController } from './file-upload.controller';
-import { diskStorage } from 'multer';
 import { ProjectFile, ProjectFileSchema } from './schemas/project-file.schema';
 import { ProjectFileService } from './services/project-file.service';
-import { DocsMiddleware, ExcelMiddleware, ImageMiddleware } from '../middlewares/allowed-file-formats.middleware';
-import * as path from 'path';
-import { ExcelServiceModule } from './services/excel.module';
-import { FileRequest } from './interfaces/file-request.interface';
+import { ConfigModule } from '@nestjs/config';
+import { MulterModule } from '@nestjs/platform-express';
+import { multerOptions } from '../cloudinary/providers/multer-config';
+import { CloudinaryProvider } from '../cloudinary/providers/cloudinary.provider';
 
 @Module({
   imports: [
+    ConfigModule.forRoot(),
     MongooseModule.forFeature([{ name: ProjectFile.name, schema: ProjectFileSchema }]),
-    ExcelServiceModule,
-    MulterModule.register({
-      storage: diskStorage({
-        destination: './uploads',
-        filename: (req: FileRequest, file, cb) => {
-          // check if the file format is valid
-          const [fileName, fileExtension] = getFileNameAndExtension(file.originalname);
-
-          if (!req?.allowedFormats?.includes(fileExtension)) {
-            const allowedFormats = req?.allowedFormats?.join(',');
-            const message = `${allowedFormats ?? 'No any'} files are allowed`;
-            cb(
-              new UnsupportedMediaTypeException(message),
-              file.originalname ?? '',
-            )
-            return;
-          }
-        
-          // Generate filename and pass it to the callback
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          cb(null, fileName + '-' + uniqueSuffix + '.' + fileExtension);
-        },
-      }),
-      fileFilter: (req: FileRequest, file, cb) => {
-        // check if the file format is valid
-        const fileExtension = file.originalname.split('.').pop();
-
-        if (!req?.allowedFormats?.includes(fileExtension)) {
-          const allowedFormats = req?.allowedFormats?.join(',');
-          const message = `${allowedFormats ?? 'No any'} files are allowed`;
-          cb(
-            new UnsupportedMediaTypeException(message),
-            false,
-          )
-          return;
-        }
-        cb(null, true);
-        
-      },
-    }),
+    MulterModule.register(multerOptions),
   ],
-  providers: [ProjectFileService],
+  providers: [ProjectFileService, CloudinaryProvider],
   controllers: [FileUploadController],
   exports: [ProjectFileService]
 })
 export class FileManagementModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(ExcelMiddleware).forRoutes({ path: 'file/upload/excel', method: RequestMethod.POST });
-    consumer.apply(DocsMiddleware).forRoutes({ path: 'file/upload/docs', method: RequestMethod.POST });
-    consumer.apply(ImageMiddleware).forRoutes({ path: 'file/upload/image', method: RequestMethod.POST });
+    // consumer.apply(ExcelMiddleware).forRoutes({ path: 'file/upload/excel', method: RequestMethod.POST });
+    // consumer.apply(DocsMiddleware).forRoutes({ path: 'file/upload/docs', method: RequestMethod.POST });
+    // consumer.apply(ImageMiddleware).forRoutes({ path: 'file/upload/image', method: RequestMethod.POST });
     
   }
 }
 
 // Function to separate file name and extension
-function getFileNameAndExtension(filePath: string): [string, string] {
-  const fileName = path.basename(filePath, path.extname(filePath));
-  const extension = path.extname(filePath).slice(1);
+// function getFileNameAndExtension(filePath: string): [string, string] {
+//   const fileName = path.basename(filePath, path.extname(filePath));
+//   const extension = path.extname(filePath).slice(1);
 
-  return [fileName, extension];
-}
+//   return [fileName, extension];
+// }

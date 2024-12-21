@@ -1,5 +1,5 @@
 // inventory.controller.ts
-import { Controller, Post, Put, Body, Param, NotFoundException, UseGuards, SetMetadata, UsePipes } from '@nestjs/common';
+import { Controller, Post, Put, Body, Param, NotFoundException, UseGuards, SetMetadata, UsePipes, Get, Delete } from '@nestjs/common';
 import { Inventory, InventoryValidationSchema } from '../schemas/inventory.schema';
 import { InventoryService } from '../services/inventory.service';
 import { PermissionAuthGuard } from '../../auth/permission-auth-guard';
@@ -11,7 +11,7 @@ export class InventoryController {
 
   @Post('receive')
   @UseGuards(PermissionAuthGuard)
-  @SetMetadata('permissions', ['invoices-management'])
+  @SetMetadata('permissions', ['manage-stock'])
   @UsePipes(new JoiValidationPipe(InventoryValidationSchema.create))
   async receiveStock(@Body() data: any): Promise<Inventory> {
     return this.inventoryService.receiveStock(data);
@@ -19,7 +19,7 @@ export class InventoryController {
   
   @Put(':id')
   @UseGuards(PermissionAuthGuard)
-  @SetMetadata('permissions', ['invoices-management'])
+  @SetMetadata('permissions', ['manage-stock'])
   @UsePipes(new JoiValidationPipe(InventoryValidationSchema.update))
   async updateStock(@Param('id') id: string, @Body() data: any): Promise<Inventory> {
     const inventory = await this.inventoryService.updateStock(id, data);
@@ -27,5 +27,26 @@ export class InventoryController {
       throw new NotFoundException(`Inventory with ID ${id} not found`);
     }
     return inventory;
+  }
+
+  @Delete(':id')
+  @UseGuards(PermissionAuthGuard)
+  @SetMetadata('permissions', ['manage-stock'])
+  async softDelete(@Param('id') id: string): Promise<Inventory> {
+    return this.inventoryService.softDelete(id);
+  }
+
+  @Get(':itemId/largest-lot-no')
+  @UseGuards(PermissionAuthGuard)
+  @SetMetadata('permissions', ['manage-stock'])
+  async getLargestLotNoByItem(@Param('itemId') itemId: string): Promise<number> {
+    return this.inventoryService.getLargestLotNoByItem(itemId);
+  }
+
+  @Get(':itemId/inventories')
+  @UseGuards(PermissionAuthGuard)
+  @SetMetadata('permissions', ['items-management'])
+  async getInventoriesByItem(@Param('itemId') itemId: string): Promise<Inventory[]> {
+    return this.inventoryService.getInventoriesByItem(itemId);
   }
 }

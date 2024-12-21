@@ -14,6 +14,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { CustomersModule } from './customer-management/customer.module';
 import { InventoryModule } from './inventory-management/inventory.module';
 import { ExpenseModule } from './expense-management/expense.module';
+import { ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { ExpenseModule } from './expense-management/expense.module';
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
     },
+    ConfigService
   ],
 })
 export class AppModule implements NestModule {

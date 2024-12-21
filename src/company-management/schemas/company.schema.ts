@@ -13,8 +13,8 @@ export class Company {
   @Prop({ required: true })
   email: string;
 
-  @Prop({ required: true })
-  phone: string;
+  @Prop()
+  phone?: string;
 
   @Prop()
   businessNo?: string;
@@ -43,9 +43,9 @@ CompanySchema.index({ cif: 1, deleted: 1 }, { unique: true });
 export const companyValidationSchema = Joi.object({
   name: Joi.string().required(),
   email: Joi.string().email().required(),
-  phone: Joi.string().required(),
-  businessNo: Joi.string().optional(),
-  address: Joi.string().optional(),
-  cif: Joi.string().optional(),
+  phone: Joi.string().allow('').allow(null).optional(),
+  businessNo: Joi.string().allow('').allow(null).optional(),
+  address: Joi.string().allow('').allow(null).optional(),
+  cif: Joi.string().allow('').allow(null).optional(),
   logo: Joi.string().allow('').allow(null).optional()  // Assuming the logo is a URL and optional
 });

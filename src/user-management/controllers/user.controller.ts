@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, UsePipes, NotFoundException, UseGuards, SetMetadata, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, UsePipes, NotFoundException, UseGuards, SetMetadata, Query, Req } from '@nestjs/common';
 import { UserService } from '../services/user.service';
 import { User, UserValidationSchema } from '../schemas/user.schema';
 import { Types } from 'mongoose';
@@ -7,10 +7,17 @@ import * as Joi from 'joi';
 import { RoleService } from '../services/role.service';
 import { PermissionAuthGuard } from '../../auth/permission-auth-guard';
 import { CreateUserDto } from '../dto/create-user.dto';
+import { Request } from 'express';
+import { UserSettingsService } from '../services/user-settings.service';
+import { UserSettings } from '../schemas/user-settings.schema';
 
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService, private readonly roleService: RoleService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly roleService: RoleService,
+    private readonly userSettingsService: UserSettingsService
+  ) {}
 // changes in develop
   @Post()
   @UseGuards(PermissionAuthGuard)
@@ -34,6 +41,17 @@ export class UserController {
   async updatePasswordByVerificationKey(@Body() user: User): Promise<Types.ObjectId> {
     const { verificationKey, password } = user;
     return this.userService.updatePasswordByVerificationKey(verificationKey, password);
+  }
+
+  @Put(':id/password/reset')
+  @UsePipes(new JoiValidationPipe(Joi.object({
+    userId: Joi.string().required(),
+    password: Joi.string().required(),
+    newPassword: Joi.string().required(),
+    retypeNewPassword: Joi.string().required(),
+  })))
+  async resetPassword(@Param('id') id: string, @Body() resetPasswordDto: any): Promise<Types.ObjectId> {
+    return this.userService.resetPassword(id, resetPasswordDto);
   }
 
   @Get()
@@ -63,6 +81,27 @@ export class UserController {
     };
   }
 
+  @Get('verify/:verificationKey')
+  async getUserByVerificationKey(@Param('verificationKey') verificationKey: string): Promise<any> {
+    return this.userService.getUserByVerificationKey(verificationKey);
+  }
+
+  @Put('verify/:verificationKey')
+  @UsePipes(new JoiValidationPipe(Joi.object({
+    newPassword: Joi.string().required(),
+    retypeNewPassword: Joi.string().required(),
+  })))
+  async verifyUser(@Param('verificationKey') verificationKey: string, @Body() verifyUserDto: any): Promise<Types.ObjectId> {
+    return this.userService.verifyUser(verificationKey, verifyUserDto);
+  }
+
+  @Get(':id/activation/link')
+  @UseGuards(PermissionAuthGuard)
+  @SetMetadata('permissions', ['manage_users'])
+  async getActivationLink(@Param('id') id: string): Promise<any> {
+    return this.userService.getActivationLink(id);
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<User> {
     return this.userService.findOne(id);
@@ -79,6 +118,27 @@ export class UserController {
   @UseGuards(PermissionAuthGuard)
   @SetMetadata('permissions', ['manage_users'])
   async remove(@Param('id') id: string): Promise<User> {
-    return this.userService.remove(id);
+    return this.userService.delete(id);
+  }
+
+  @Get('current/settings')
+  @UseGuards(PermissionAuthGuard)
+  @SetMetadata('permissions', ['manage-general-info'])
+  async currentUserSettings(@Req() request: Request): Promise<User> {
+    return this.userSettingsService.getCurrentUserSettings(request);
+  }
+
+  @Put('current/settings')
+  @UseGuards(PermissionAuthGuard)
+  @SetMetadata('permissions', ['manage-general-info'])
+  async updateCurrentUserSettings(@Req() request: Request, @Body() userSettings: Partial<UserSettings>): Promise<User> {
+    return this.userSettingsService.updateCurrentUserSettings(request, userSettings);
+  }
+
+  @Get('current/companies')
+  @UseGuards(PermissionAuthGuard)
+  @SetMetadata('permissions', ['manage-general-info'])
+  async currentUserCompanies(@Req() request: Request): Promise<User> {
+    return this.userService.getCurrentUserCompanies(request);
   }
 }
